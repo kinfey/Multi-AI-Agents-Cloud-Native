@@ -1,0 +1,4 @@
+fastapi
+github-copilot-sdk
+python-dotenv
+uvicorn
