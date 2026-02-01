@@ -1,5 +1,7 @@
 # Multi-AI-Agents-Cloud-Native
 
+![bg](./imgs/bg.png)
+
 A collection of **multi-agent AI application samples** designed for **cloud-native deployment** on **Microsoft Azure**. This repository demonstrates how to build, orchestrate, and deploy intelligent AI agent systems using modern cloud technologies.
 
 ## Overview
