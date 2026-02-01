@@ -714,7 +714,7 @@ async def agent_card():
         "name": "ppt_agent",
         "description": "Specialized PPT generation agent for creating professional presentations with code examples",
         "version": "1.0.0",
-        "url": "https://gh-cli-ppt-agent.yellowbeach-d41b96e2.swedencentral.azurecontainerapps.io",
+        "url": "Your PPT Agent URL on Azure Container Apps Endpoint",
         "protocol": "a2a",
         "protocolVersion": "0.2.0",
         

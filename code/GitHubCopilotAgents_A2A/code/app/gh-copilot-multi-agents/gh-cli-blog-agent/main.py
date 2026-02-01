@@ -708,7 +708,7 @@ async def agent_card():
         "name": "blog_agent",
         "description": "Specialized blog generation agent with DeepSearch research and technical evangelist writing style",
         "version": "1.0.0",
-        "url": "https://gh-cli-blog-agent.braveriver-c7642de6.swedencentral.azurecontainerapps.io",
+        "url": "Your Blog Agent URL on Azure Container Apps Endpoint",
         "protocol": "a2a",
         "protocolVersion": "0.2.0",
         
