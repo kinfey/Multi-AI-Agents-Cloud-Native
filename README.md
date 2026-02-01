@@ -10,6 +10,7 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 
 - **Agent-to-Agent (A2A) Protocol** - Inter-agent communication using JSON-RPC 2.0 and SSE streaming
 - **Model Context Protocol (MCP)** - Standardized protocol for connecting AI models to external data sources and tools
+- **Agent Communication Protocol (ACP)** - Event-driven protocol for asynchronous agent messaging, supporting pub/sub patterns and complex multi-agent workflows
 
 ### AI Frameworks & SDKs
 
