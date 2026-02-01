@@ -16,7 +16,7 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 
 ### AI Frameworks & SDKs
 
-- **GitHub Copilot SDK** - AI-powered capabilities for content generation and code assistance
+- **GitHub Copilot SDK** - Multi-platform SDK (Python, TypeScript, Go, .NET) for embedding Copilot's agentic workflows into applications. Exposes the same production-tested agent runtime behind Copilot CLI—you define agent behavior, Copilot handles planning, tool invocation, file edits, and more
 - **Microsoft Agent Framework** - Framework for building and orchestrating AI agents
 - **Microsoft Foundry** - Enterprise-grade AI platform for building, deploying, and managing AI applications at scale
 
@@ -25,6 +25,7 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 - **Azure Container Apps** - Serverless container platform for deploying microservices and AI agents with automatic scaling, built-in load balancing, and simplified operations
 - **Azure Kubernetes Service (AKS)** - Fully managed Kubernetes for complex multi-agent deployments requiring fine-grained control, custom networking, and enterprise-grade orchestration
 - **Azure Container Registry** - Private Docker registry for storing and managing container images
+- **Azure API Management (APIM)** - Full-lifecycle API management for publishing, securing, and monitoring AI agent APIs with built-in rate limiting, authentication, and analytics
 
 ## Repository Structure
 
