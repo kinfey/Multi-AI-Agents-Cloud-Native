@@ -38,35 +38,7 @@ This project implements a **multi-agent orchestration system** with the followin
 
 ### A2A Protocol Flow
 
-```
-┌──────────┐                    ┌──────────┐                    ┌──────────┐
-│  Client  │                    │Orchestrator│                  │  Agent   │
-└────┬─────┘                    └─────┬─────┘                   └────┬─────┘
-     │                                │                              │
-     │  1. Send Task                  │                              │
-     │───────────────────────────────>│                              │
-     │                                │                              │
-     │                                │  2. Discover Agent           │
-     │                                │  GET /.well-known/agent-card.json
-     │                                │─────────────────────────────>│
-     │                                │                              │
-     │                                │  3. Agent Card Response      │
-     │                                │<─────────────────────────────│
-     │                                │                              │
-     │                                │  4. Route & Send Task        │
-     │                                │  POST / (JSON-RPC 2.0)       │
-     │                                │─────────────────────────────>│
-     │                                │                              │
-     │                                │  5. SSE Stream Response      │
-     │                                │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
-     │                                │     (status-update)          │
-     │                                │     (artifact-update)        │
-     │                                │     (completed)              │
-     │                                │                              │
-     │  6. Final Response             │                              │
-     │<───────────────────────────────│                              │
-     │                                │                              │
-```
+![flow](./imgs/flow.jpg)
 
 ---
 
