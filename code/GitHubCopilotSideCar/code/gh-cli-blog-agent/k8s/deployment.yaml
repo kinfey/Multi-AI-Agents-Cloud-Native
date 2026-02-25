@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-agent
+  labels:
+    app: blog-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blog-agent
+  template:
+    metadata:
+      labels:
+        app: blog-agent
+    spec:
+      containers:
+        # Main container - Blog App (Nginx Web Viewer)
+        - name: blog-app
+          image: blog-agent-main:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: blog-data
+              mountPath: /usr/share/nginx/html/blog
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        # Sidecar 1 - Copilot Agent (FastAPI + GitHub Copilot SDK)
+        - name: copilot-agent
+          image: blog-agent-copilot:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: AGENT_PORT
+              value: "8001"
+            - name: SKILL_SERVER_URL
+              value: "http://127.0.0.1:8002"
+            - name: SKILLS_DIR
+              value: "/skills-shared/blog/SKILL.md"
+            - name: COPILOT_GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: blog-agent-secret
+                  key: copilot-github-token
+          volumeMounts:
+            - name: blog-data
+              mountPath: /work/blog
+            - name: skills-shared
+              mountPath: /skills-shared
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+
+        # Sidecar 2 - Skill Server (FastAPI skill management)
+        - name: skill-server
+          image: blog-agent-skill:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+          env:
+            - name: SKILL_PORT
+              value: "8002"
+            - name: SKILLS_SOURCE_DIR
+              value: "/skills-source"
+            - name: SKILLS_SHARED_DIR
+              value: "/skills-shared"
+          volumeMounts:
+            - name: skills-source
+              mountPath: /skills-source
+              readOnly: true
+            - name: skills-shared
+              mountPath: /skills-shared
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+      volumes:
+        - name: blog-data
+          emptyDir: {}
+        - name: skills-shared
+          emptyDir: {}
+        - name: skills-source
+          configMap:
+            name: blog-agent-skill

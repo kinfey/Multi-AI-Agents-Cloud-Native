@@ -33,7 +33,8 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 Multi-AI-Agents-Cloud-Native/
 ├── README.md
 └── code/
-    └── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
+    ├── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
+    └── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
 ```
 
 ---
@@ -94,6 +95,73 @@ python main.py
 
 ---
 
+### 2. GitHub Copilot Agent with Kubernetes Sidecar Pattern
+
+📁 **Location**: [`code/GitHubCopilotSideCar/`](./code/GitHubCopilotSideCar/)
+
+A Kubernetes-native AI blog generation agent using the **Dual-Sidecar Pattern**, deploying three containers within a single Pod for separation of concerns and shared-volume collaboration.
+
+#### Architecture
+
+| Container | Role | Port |
+|-----------|------|------|
+| **blog-app** (Main) | Nginx web viewer + reverse proxy | 80 |
+| **copilot-agent** (Sidecar 1) | FastAPI + GitHub Copilot SDK for AI blog generation | 8001 |
+| **skill-server** (Sidecar 2) | FastAPI skill management, serves SKILL.md via ConfigMap | 8002 |
+
+#### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Dual-Sidecar Pattern** | Three containers in one Pod — main app, AI agent, and skill server |
+| **Shared Volume Collaboration** | `emptyDir` volumes for blog data and skill sharing between containers |
+| **ConfigMap-Driven Skills** | Agent behavior defined in Kubernetes ConfigMap, hot-reloadable without rebuild |
+| **GitHub Copilot SDK** | AI-powered blog generation with DeepSearch integration |
+| **Reverse Proxy** | Nginx routes `/agent/` and `/skill/` to sidecars via localhost |
+
+#### Data Flow
+
+```
+ConfigMap (SKILL.md) → Skill Server syncs to shared volume
+    → Copilot Agent reads skills & generates blog
+    → Writes to shared volume → Nginx serves content
+```
+
+#### Technologies Used
+
+- Python 3.12+ with FastAPI
+- GitHub Copilot SDK + Node.js 20
+- Kubernetes (kind for local development)
+- Nginx reverse proxy
+- Docker multi-container Pod
+
+#### Quick Start
+
+```bash
+cd code/GitHubCopilotSideCar/code/gh-cli-blog-agent
+
+# One-click: create cluster, build images, deploy
+make up
+
+# Set your GitHub Copilot token
+make set-token TOKEN=<your-github-copilot-token>
+
+# Port-forward to access the app
+make port-forward
+
+# Generate a blog post
+curl -X POST http://localhost:8080/agent/task \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "Kubernetes Sidecar Pattern"}'
+
+# View generated blogs
+curl http://localhost:8080/blog/
+```
+
+👉 [View Full Documentation](./code/GitHubCopilotSideCar/code/README.md)
+
+---
+
 ## Prerequisites
 
 Before running any example, ensure you have:
@@ -102,6 +170,8 @@ Before running any example, ensure you have:
 - **Node.js**: 20 or higher
 - **Docker**: For containerized deployment
 - **Azure CLI**: For Azure deployments
+- **kubectl**: For Kubernetes deployments
+- **kind**: For local Kubernetes clusters (Sidecar example)
 - **Git**: For version control
 
 ## Azure Services Used
@@ -109,6 +179,7 @@ Before running any example, ensure you have:
 | Service | Purpose |
 |---------|---------|
 | **Azure Container Apps** | Serverless container hosting for agents |
+| **Azure Kubernetes Service (AKS)** | Managed Kubernetes for Sidecar pattern deployments |
 | **Azure Container Registry** | Private Docker image storage |
 | **Azure Resource Groups** | Resource organization and management |
 
@@ -120,6 +191,8 @@ Before running any example, ensure you have:
 - [GitHub Copilot SDK](https://github.com/github/copilot-sdk)
 - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
+- [Azure Kubernetes Service Documentation](https://learn.microsoft.com/en-us/azure/aks/)
+- [Kubernetes Sidecar Containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)
 
 ### Tutorials
 
