@@ -4,6 +4,8 @@
 
 ---
 
+![safe](./img/safe.png)
+
 ## Security Architecture (5-Layer Defense)
 
 | Layer | Mechanism | Description |
