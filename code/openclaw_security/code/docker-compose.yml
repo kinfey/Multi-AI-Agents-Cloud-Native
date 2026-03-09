@@ -1,0 +1,331 @@
+version: "3.9"
+
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  AI Podcast Generator  —  Security-Hardened Edition               ║
+# ║  Security mechanisms translated from ryoooo/microvm-openclaw.nix  ║
+# ║                                                                    ║
+# ║  Defense layer mapping:                                            ║
+# ║  [NixOS microVM]               [Docker equivalent]                ║
+# ║  KVM kernel isolation          seccomp + cap_drop ALL             ║
+# ║  nftables microvm-egress log   host nftables/iptables             ║
+# ║  Unbound DNS query log         dns-audit container (sidecar)      ║
+# ║  virtiofs secrets + rotation   secrets-init + /run/secrets        ║
+# ║  auditd secrets dir monitor    inotifywait in secrets-init        ║
+# ║  AF_NETLINK Node.js fix        security/seccomp-openclaw.json     ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+# ── Common security config (inherited by all containers) ────────────
+x-security-base: &security-base
+  security_opt:
+    - no-new-privileges:true  # prevent setuid/setgid privilege escalation
+  init: true                  # PID 1 = tini (prevent zombie processes)
+  restart: unless-stopped
+
+# ── OpenClaw-specific security config ───────────────────────────────
+x-openclaw-security: &openclaw-security
+  security_opt:
+    - no-new-privileges:true
+    # seccomp: custom profile, allows AF_NETLINK (required by Node.js), blocks CLONE_NEWUSER
+    # corresponds to microvm.nix kernel-level isolation + buduroiu AF_NETLINK fix
+    - seccomp:./security/seccomp-openclaw.json
+  cap_drop:
+    - ALL             # drop all Linux capabilities
+  cap_add:
+    - NET_BIND_SERVICE # OpenClaw Gateway needs to bind :18789
+    - CHOWN           # set file ownership during init
+    - SETUID          # may be needed by Node.js
+    - SETGID
+  read_only: false    # OpenClaw needs to write to ~/.openclaw/ (ProtectSystem=full equivalent)
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=128m  # in-memory /tmp, no exec
+  init: true
+
+services:
+
+  # ════════════════════════════════════════════════════════
+  #  LAYER 0: secrets-init
+  #  virtiofs secrets pattern + auditd equivalent
+  #  Corresponds to: systemd.services.openclaw-prepare-secrets
+  #                  security.audit.rules = ["-w /run/secrets -p rwxa"]
+  #
+  #  Regenerates gateway-token on every startup (boot rotation)
+  #  inotifywait monitors all access to /run/secrets
+  # ════════════════════════════════════════════════════════
+  secrets-init:
+    image: alpine:3.19
+    container_name: secrets-init
+    networks:
+      - internal-net
+    volumes:
+      - secrets-vol:/run/secrets
+      - ./security/secrets-init.sh:/secrets-init.sh:ro
+      - ./config:/openclaw-config:rw
+    command: ["/bin/sh", "/secrets-init.sh"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+      - CHOWN
+      - FOWNER
+    # inotify-tools included in alpine packages
+    entrypoint: >
+      /bin/sh -c "
+        apk add --no-cache inotify-tools xxd jq 2>/dev/null || true &&
+        /bin/sh /secrets-init.sh &&
+        echo '[secrets-init] Staying alive to maintain auditd monitoring...' &&
+        tail -f /dev/null
+      "
+    healthcheck:
+      test: ["CMD", "test", "-f", "/run/secrets/gateway-token"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════
+  #  LAYER 1: dns-audit (Unbound DNS query logging)
+  #  NixOS equivalent:
+  #    services.unbound.settings.server = {
+  #      log-queries = "yes";
+  #      interface = [ "192.168.83.1" ];
+  #    };
+  #
+  #  All DNS queries from OpenClaw containers pass through this container.
+  #  docker logs dns-audit shows resolution records in real time.
+  #  Suspicious domains are immediately visible.
+  # ════════════════════════════════════════════════════════
+  dns-audit:
+    image: mvance/unbound:latest
+    platform: linux/amd64
+    container_name: dns-audit
+    networks:
+      podcast-net:
+        ipv4_address: 172.20.0.53   # fixed IP; used by OpenClaw container as DNS
+      internal-net: {}
+    volumes:
+      - ./security/unbound.conf:/opt/unbound/etc/unbound/unbound.conf:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE   # bind :53
+      - SETUID
+      - SETGID
+      - SYS_CHROOT          # required by Unbound
+      - CHOWN               # startup chown
+      - DAC_OVERRIDE        # device file access
+      - MKNOD               # create /dev/{random,urandom,null}
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "cloudflare.com"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ════════════════════════════════════════════════════════
+  #  LAYER 2: Ollama (LLM backend)
+  # ════════════════════════════════════════════════════════
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    networks:
+      - internal-net    # not exposed to podcast-net; internal calls only
+    ports:
+      - "127.0.0.1:11435:11434"   # use 11435 on host to avoid conflict with local Ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_NUM_CTX=16384
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+          cpus: '16'
+    <<: *security-base
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # ════════════════════════════════════════════════════════
+  #  LAYER 3: OpenClaw Gateway (core security hardening)
+  #
+  #  Security mechanisms (5 layers, corresponding to microvm-openclaw.nix):
+  #
+  #  [1] seccomp-openclaw.json
+  #      - drop all caps (cap_drop: ALL)
+  #      - allow AF_NETLINK socket (required by Node.js libuv)
+  #      - block CLONE_NEWUSER namespace escape
+  #
+  #  [2] Gateway Token read from /run/secrets/gateway-token
+  #      (rotated on each secrets-init startup, equivalent to virtiofs boot rotation)
+  #
+  #  [3] DNS forced through dns-audit container (172.20.0.53)
+  #      all domain resolutions logged by Unbound (equivalent to Unbound DNS log)
+  #
+  #  [4] Network isolation: only podcast-net and internal-net
+  #      cannot access host filesystem or other Docker networks
+  #
+  #  [5] Tool allowlist: exec disabled (prevent shell escape)
+  #      allowed only: web_search, read, write
+  # ════════════════════════════════════════════════════════
+  openclaw:
+    image: ghcr.io/openclaw/openclaw:latest
+    container_name: openclaw
+    networks:
+      podcast-net:
+        ipv4_address: 172.20.0.10
+      internal-net: {}
+    depends_on:
+      secrets-init:
+        condition: service_healthy
+      dns-audit:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    # ── DNS auditing (corresponds to nameservers = [ "192.168.83.1" ]) ──
+    dns:
+      - 172.20.0.53    # force use of dns-audit container (Unbound + query log)
+    dns_search: []
+    environment:
+      - HOME=/home/node
+      - TERM=xterm-256color
+      # Token is read from the file generated by secrets-init (rotated on each startup)
+      - OPENCLAW_GATEWAY_TOKEN_FILE=/run/secrets/gateway-token
+    volumes:
+      - ./config:/home/node/.openclaw:rw              # openclaw.json config
+      - ./workspace:/home/node/.openclaw/workspace:rw # Agent workspace (write access, ProtectSystem=full equivalent)
+      - secrets-vol:/run/secrets:ro                   # read-only secrets mount
+    ports:
+      - "127.0.0.1:18789:18789"   # bind loopback only (corresponds to gateway.bind loopback)
+    command:
+      - node
+      - dist/index.js
+      - gateway
+      - --allow-unconfigured
+      - --bind
+      - lan
+      - --port
+      - "18789"
+    # ── Security hardening (5 layers) ────────────────────
+    <<: *openclaw-security
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18789/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  # ════════════════════════════════════════════════════════
+  #  Model Init (one-off; pulls the LLM model)
+  # ════════════════════════════════════════════════════════
+  model-init:
+    image: curlimages/curl:latest
+    container_name: model-init
+    networks:
+      - internal-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "==> Checking model..."
+        if curl -s http://ollama:11434/api/tags | grep -q "qwen3:1.7b"; then
+          echo "==> qwen3:1.7b already exists"
+        else
+          echo "==> Pulling qwen3:1.7b..."
+          curl -s -X POST http://ollama:11434/api/pull \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"qwen3:1.7b"}' | tail -3
+        fi
+        echo "==> Done ✓"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: "no"
+
+  # ════════════════════════════════════════════════════════
+  #  Podcast App (fully automated podcast generator)
+  # ════════════════════════════════════════════════════════
+  podcast-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: podcast-app
+    networks:
+      - internal-net
+      - podcast-net
+    depends_on:
+      openclaw:
+        condition: service_healthy
+    dns:
+      - 172.20.0.53    # via dns-audit
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OPENCLAW_GATEWAY=http://openclaw:18789
+      - OPENCLAW_TOKEN_FILE=/run/secrets/gateway-token  # read rotated token
+      - SERPAPI_KEY=${SERPAPI_KEY}
+      - PODCAST_OUTPUT_DIR=/app/output
+      - PODCAST_MODEL=qwen3:1.7b
+      - TOPICS_PER_RUN=${TOPICS_PER_RUN:-1}
+      - SCHEDULE_HOURS=${SCHEDULE_HOURS:-0}
+      - SKIP_SEARCH=${SKIP_SEARCH:-0}
+    volumes:
+      - ./output:/app/output
+      - secrets-vol:/run/secrets:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    restart: "no"
+
+# ── Network definitions ────────────────────────────────────────────────────────────────
+networks:
+  # podcast-net: accessible by OpenClaw (with DNS auditing)
+  # corresponds to microvm bridge 192.168.83.0/24
+  podcast-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-podcast
+      # egress logging done by host nftables rules (security/egress-monitor.sh)
+
+  # internal-net: pure internal communication (Ollama <-> App, no DNS auditing)
+  internal-net:
+    driver: bridge
+    internal: false   # Ollama needs to pull models
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+# ── Persistent volumes ────────────────────────────────────────────────────────────────
+volumes:
+  ollama_data:
+    driver: local
+  # secrets-vol: tmpfs mode (in-memory, cleared on restart, equivalent to virtiofs ephemeral mount)
+  secrets-vol:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=10m,mode=0700,noexec,nosuid"

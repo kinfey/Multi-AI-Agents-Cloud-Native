@@ -1,0 +1,31 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://ollama:11434/v1",
+      "apiKey": "ollama",
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "qwen3:1.7b",
+          "name": "Qwen3-1.7B",
+          "api": "openai-completions",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 131072,
+          "maxTokens": 8192,
+          "compat": {
+            "maxTokensField": "max_tokens"
+          }
+        }
+      ]
+    }
+  }
+}

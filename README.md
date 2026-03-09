@@ -20,6 +20,11 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 - **Microsoft Agent Framework** - Framework for building and orchestrating AI agents
 - **Microsoft Foundry** - Enterprise-grade AI platform for building, deploying, and managing AI applications at scale
 
+### Security & Hardening
+
+- **5-Layer Defense Architecture** - Comprehensive container security with secrets rotation, DNS auditing, seccomp profiles, egress monitoring, and tool allowlisting
+- **OpenClaw Gateway** - AI agent gateway with token-based authentication, tool sandboxing, and configurable agent orchestration
+
 ### Cloud-Native Deployment on Microsoft Azure
 
 - **Azure Container Apps** - Serverless container platform for deploying microservices and AI agents with automatic scaling, built-in load balancing, and simplified operations
@@ -34,7 +39,8 @@ Multi-AI-Agents-Cloud-Native/
 ├── README.md
 └── code/
     ├── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
-    └── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
+    ├── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
+    └── openclaw_security/          # Security-Hardened AI Podcast Generator
 ```
 
 ---
@@ -162,6 +168,106 @@ curl http://localhost:8080/blog/
 
 ---
 
+### 3. Security-Hardened AI Podcast Generator with OpenClaw
+
+📁 **Location**: [`code/openclaw_security/`](./code/openclaw_security/)
+
+A fully automated AI podcast generation pipeline with a **5-layer security-hardened** Docker Compose architecture. Combines **OpenClaw Gateway** for AI agent orchestration, **SerpAPI DeepSearch** for real-time trend scouting, and **Ollama** for local LLM dialogue generation — all running inside hardened containers with defense-in-depth security controls.
+
+#### Architecture
+
+| Container | Role | Security Layer |
+|-----------|------|----------------|
+| **secrets-init** | Token rotation on startup, tmpfs secrets volume, inotifywait audit | Layer 0 |
+| **dns-audit** | Unbound DNS sidecar, all queries logged, Cloudflare DoT upstream | Layer 1 |
+| **openclaw** | AI agent gateway with seccomp profile, cap_drop ALL, tool allowlist | Layers 2–5 |
+| **ollama** | Local LLM inference (Qwen3-0.6B) | Inherited security |
+| **podcast-app** | Automated pipeline: trend scout → deep search → podcast generation | Inherited security |
+
+#### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **5-Layer Defense** | Secrets rotation, DNS audit, seccomp profiles, nftables egress logging, tool allowlisting |
+| **Automated Pipeline** | End-to-end: trend scouting → web research → LLM dialogue generation → TXT output |
+| **OpenClaw TrendScout** | AI agent uses `web_search` tools to discover trending AI/tech topics in real time |
+| **SerpAPI DeepSearch** | Google Search + page scraping + LLM summarization for deep knowledge building |
+| **Local LLM Inference** | Ollama with Qwen3-0.6B for private, cost-free podcast script generation |
+| **Boot Token Rotation** | Gateway token regenerated on every container startup via `secrets-init` |
+| **DNS Query Auditing** | All DNS resolutions logged through Unbound sidecar for full visibility |
+| **seccomp Hardening** | Custom profile allows AF_NETLINK (Node.js requirement) while blocking CLONE_NEWUSER namespace escapes |
+
+#### Security Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Host (nftables egress logging, IMDS blocked)               │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ secrets-init │  │  dns-audit   │  │     openclaw     │  │
+│  │ (Layer 0)    │  │  (Layer 1)   │  │   (Layers 2-5)   │  │
+│  │ boot rotate  │  │ Unbound DNS  │  │ seccomp profile  │  │
+│  │ inotifywait  │  │ log-queries  │  │ cap_drop ALL     │  │
+│  │ audit log    │  │ Cloudflare   │  │ tool allowlist   │  │
+│  │              │  │ DoT upstream │  │ exec disabled    │  │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
+│         │ secrets-vol     │ :53               │            │
+│         └─────────────────┴───────────────────┘            │
+│                    podcast-net (172.20.0.0/24)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Data Flow
+
+```
+secrets-init (rotates token) → OpenClaw Gateway (authenticates)
+    → TrendScout Agent (web_search via SerpAPI) → discovers trending topics
+    → DeepSearch (scrapes & summarizes sources) → builds knowledge base
+    → Ollama LLM (generates podcast dialogue) → TXT output
+```
+
+#### Technologies Used
+
+- Python 3.11 with automated orchestration pipeline
+- OpenClaw Gateway for AI agent management
+- Ollama with Qwen3-0.6B for local LLM inference
+- SerpAPI for real-time web search
+- Docker Compose with multi-container security architecture
+- Unbound DNS for query auditing
+- Custom seccomp profiles for syscall filtering
+
+#### Quick Start
+
+```bash
+cd code/openclaw_security/code
+
+# Configure your SerpAPI key
+cp .env.example .env
+vim .env  # fill in SERPAPI_KEY
+
+# One-command setup & launch
+chmod +x setup.sh && ./setup.sh
+docker compose run --rm podcast-app
+```
+
+#### Monitoring
+
+```bash
+# DNS query audit (all domains resolved by OpenClaw)
+docker logs -f dns-audit
+
+# Secrets directory access audit
+docker logs -f secrets-init
+
+# Host-level egress connection logging
+sudo bash security/egress-monitor.sh setup
+sudo bash security/egress-monitor.sh watch
+```
+
+👉 [View Full Documentation](./code/openclaw_security/README.md)
+
+---
+
 ## Prerequisites
 
 Before running any example, ensure you have:
@@ -169,9 +275,11 @@ Before running any example, ensure you have:
 - **Python**: 3.12 or higher
 - **Node.js**: 20 or higher
 - **Docker**: For containerized deployment
+- **Docker Compose**: v2 required for the OpenClaw security example
 - **Azure CLI**: For Azure deployments
 - **kubectl**: For Kubernetes deployments
 - **kind**: For local Kubernetes clusters (Sidecar example)
+- **SerpAPI Key**: For DeepSearch in the podcast generator ([get key](https://serpapi.com/manage-api-key))
 - **Git**: For version control
 
 ## Azure Services Used
@@ -193,11 +301,16 @@ Before running any example, ensure you have:
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
 - [Azure Kubernetes Service Documentation](https://learn.microsoft.com/en-us/azure/aks/)
 - [Kubernetes Sidecar Containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)
+- [Docker seccomp Security Profiles](https://docs.docker.com/engine/security/seccomp/)
+- [Unbound DNS Resolver](https://nlnetlabs.nl/projects/unbound/about/)
+- [SerpAPI Documentation](https://serpapi.com/search-api)
+- [Ollama](https://ollama.com/)
 
 ### Tutorials
 
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Docker Getting Started](https://docs.docker.com/get-started/)
+- [Docker Compose Security Best Practices](https://docs.docker.com/compose/use-secrets/)
 
 ---
 
