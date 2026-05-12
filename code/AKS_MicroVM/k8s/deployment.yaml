@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copilot-agent
+  namespace: copilot-agent
+  labels:
+    app: copilot-agent
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: copilot-agent
+  template:
+    metadata:
+      labels:
+        app: copilot-agent
+      annotations:
+        # Kata uses lazy mount propagation; this annotation pre-allocates
+        # memory to avoid first-call latency spikes on the microVM.
+        io.katacontainers.config.hypervisor.default_memory: "2048"
+    spec:
+      # ★ The critical line: force this Pod into a Kata microVM.
+      # On AKS Pod Sandboxing: kata-vm-isolation (handler: kata)
+      # On upstream Kata:      kata-qemu
+      runtimeClassName: kata-vm-isolation
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: acrcopilotkata25617.azurecr.io/copilot-agent:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: RUNTIME_CLASS
+              value: kata-vm-isolation
+            - name: LOG_LEVEL
+              value: INFO
+            # Conservative default: deny every permission request.
+            # Add e.g. "read,url" to allow read-only + URL fetch tools.
+            - name: COPILOT_ALLOW_KINDS
+              value: ""
+            - name: GITHUB_COPILOT_MODEL
+              value: "gpt-5.5"
+            - name: GITHUB_COPILOT_TIMEOUT
+              value: "120"
+            - name: GH_COPILOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: copilot-agent-secrets
+                  key: GH_COPILOT_TOKEN
+            # The Copilot CLI / SDK reads auth from GH_TOKEN (or GITHUB_TOKEN).
+            # We source both from the same secret value for compatibility.
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: copilot-agent-secrets
+                  key: GH_COPILOT_TOKEN
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: copilot-agent-secrets
+                  key: GH_COPILOT_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1500m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: copilot-home
+              mountPath: /home/agent/.copilot
+            - name: copilot-cache
+              mountPath: /home/agent/.cache
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: copilot-home
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: copilot-cache
+          emptyDir:
+            sizeLimit: 512Mi

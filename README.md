@@ -38,6 +38,7 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 Multi-AI-Agents-Cloud-Native/
 ├── README.md
 └── code/
+    ├── AKS_MicroVM/                # Copilot SDK Agent on AKS with Kata microVM Isolation
     ├── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
     ├── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
     └── openclaw_security/          # Security-Hardened AI Podcast Generator
@@ -268,6 +269,77 @@ sudo bash security/egress-monitor.sh watch
 
 ---
 
+### 4. GitHub Copilot SDK Agent on AKS with Kata microVM Isolation
+
+📁 **Location**: [`code/AKS_MicroVM/`](./code/AKS_MicroVM/)
+
+A hardened **GitHub Copilot SDK Agent** service running on **Azure Kubernetes Service (AKS)** with **Kata Containers microVM isolation** (`kata-vm-isolation`). Each pod runs inside an isolated Microsoft Hyper-V (mshv) lightweight VM with its own guest kernel, drastically reducing the blast radius of container escape when the Agent executes untrusted, model-generated code (shell, file I/O, MCP servers, `npx` packages).
+
+#### Architecture
+
+| Layer | Protection |
+|-------|------------|
+| **Pod sandbox** | `runtimeClassName: kata-vm-isolation` → microVM + isolated guest kernel |
+| **Container** | `runAsNonRoot`, `readOnlyRootFilesystem`, drop ALL caps, `seccompProfile: RuntimeDefault` |
+| **Network** | `NetworkPolicy` restricts egress to required Copilot / GitHub / MCP endpoints |
+| **Secrets** | `GH_TOKEN` via Kubernetes Secret (swappable with CSI + Azure Key Vault) |
+| **Agent tools** | `on_permission_request` deny-by-default with explicit allowlist |
+
+#### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Kata microVM Isolation** | Each pod runs in its own Hyper-V lightweight VM with a dedicated guest kernel |
+| **Microsoft Agent Framework + Copilot SDK** | FastAPI service wrapping `GitHubCopilotAgent` with sync and streaming endpoints |
+| **Untrusted Code Containment** | Safe to run Copilot CLI, MCP servers, and arbitrary `npx` packages |
+| **NetworkPolicy Egress Control** | Only required outbound destinations allowed |
+| **Defense-in-Depth Pod Security** | Non-root, read-only root FS, dropped caps, seccomp RuntimeDefault |
+| **AKS Pod Sandboxing** | Uses AKS-native `kata-vm-isolation` RuntimeClass on Azure Linux nodes |
+
+#### Technologies Used
+
+- Python 3.12 + FastAPI + uvicorn
+- GitHub Copilot SDK + Copilot CLI (Node.js 20)
+- Microsoft Agent Framework
+- Azure Kubernetes Service (AKS) with Pod Sandboxing (Kata Containers)
+- Azure Linux node pool + nested-virtualization-capable VM SKU (e.g. `Standard_D4s_v3`)
+- Azure Container Registry
+
+#### Quick Start
+
+```bash
+cd code/AKS_MicroVM
+
+# 1. Create AKS with Kata (KataVmIsolation) enabled
+bash infra/01-create-aks.sh
+
+# 2. Verify the RuntimeClass is present
+kubectl get runtimeclass kata-vm-isolation
+
+# 3. Build and push the image to ACR
+bash infra/02-build-push.sh
+
+# 4. Create the Secret with your GitHub Copilot token
+cp k8s/secret.example.yaml k8s/secret.yaml
+# edit k8s/secret.yaml and set GH_TOKEN / GITHUB_TOKEN
+
+# 5. Deploy manifests
+bash infra/03-deploy.sh
+
+# 6. Call the agent via API server proxy (port-forward does NOT work for Kata pods)
+kubectl proxy --port=8001 &
+curl -s -X POST \
+  http://localhost:8001/api/v1/namespaces/copilot-agent/services/copilot-agent:80/proxy/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"Briefly introduce Kata Containers."}'
+```
+
+> ⚠️ **Kata caveat**: `kubectl port-forward` does not work against Kata pods because the listener lives inside the microVM, not in the sandbox netns. Use the API server proxy, an in-cluster client, or expose the Service via Ingress / LoadBalancer.
+
+👉 [View Full Documentation](./code/AKS_MicroVM/README.md)
+
+---
+
 ## Prerequisites
 
 Before running any example, ensure you have:
@@ -301,6 +373,8 @@ Before running any example, ensure you have:
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
 - [Azure Kubernetes Service Documentation](https://learn.microsoft.com/en-us/azure/aks/)
 - [Kubernetes Sidecar Containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)
+- [Kata Containers](https://github.com/kata-containers)
+- [AKS Pod Sandboxing (Kata Containers)](https://learn.microsoft.com/en-us/azure/aks/use-pod-sandboxing)
 - [Docker seccomp Security Profiles](https://docs.docker.com/engine/security/seccomp/)
 - [Unbound DNS Resolver](https://nlnetlabs.nl/projects/unbound/about/)
 - [SerpAPI Documentation](https://serpapi.com/search-api)

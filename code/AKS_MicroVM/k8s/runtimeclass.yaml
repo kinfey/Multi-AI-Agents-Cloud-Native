@@ -1,0 +1,32 @@
+# AKS Pod Sandboxing (Kata Containers + Microsoft Hyper-V) creates this
+# RuntimeClass automatically when `--workload-runtime KataVmIsolation`
+# is set on the node pool. This manifest is included for reference and
+# for clusters where it must be re-created.
+#
+# For upstream Kata on self-managed clusters, the typical RuntimeClass
+# names are `kata`, `kata-qemu`, or `kata-clh`; see kata-deploy:
+#   https://github.com/kata-containers/kata-containers/tree/main/tools/packaging/kata-deploy
+---
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: kata-mshv-vm-isolation
+handler: kata
+scheduling:
+  nodeSelector:
+    kubernetes.azure.com/kata-vm-isolation: "true"
+overhead:
+  podFixed:
+    cpu: "250m"
+    memory: "160Mi"
+---
+# Upstream Kata (QEMU) RuntimeClass — only useful on non-AKS clusters
+# that installed kata-deploy. Kept here for portability.
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: kata-qemu
+handler: kata-qemu
+scheduling:
+  nodeSelector:
+    katacontainers.io/kata-runtime: "true"

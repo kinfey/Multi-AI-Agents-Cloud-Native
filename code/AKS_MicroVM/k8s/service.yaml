@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: copilot-agent
+  namespace: copilot-agent
+  labels:
+    app: copilot-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: copilot-agent
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
