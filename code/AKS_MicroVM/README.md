@@ -1,5 +1,7 @@
 # GitHub Copilot SDK Agent on AKS with Kata microVM Isolation
 
+![logo](./imgs/logo.jpeg)
+
 > Run an Agent service based on **Microsoft Agent Framework + GitHub Copilot SDK**
 > on AKS with **Kata Containers microVM isolation (`kata-vm-isolation`)**
 > to reduce the blast radius of container escape against shared nodes and co-located workloads.

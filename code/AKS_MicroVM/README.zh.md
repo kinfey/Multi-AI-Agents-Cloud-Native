@@ -1,5 +1,7 @@
 # Kata microVM 隔離的 GitHub Copilot SDK Agent on AKS
 
+![logo](./imgs/logo.jpeg)
+
 > 在 AKS 上以 **Kata Containers microVM 隔離(`kata-vm-isolation`)** 執行
 > 基於 **Microsoft Agent Framework + GitHub Copilot SDK** 的 Agent 服務,
 > 緩解容器逃逸 (container escape) 對共用節點與其他工作負載的衝擊。
