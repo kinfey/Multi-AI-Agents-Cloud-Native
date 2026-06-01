@@ -19,11 +19,13 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 - **GitHub Copilot SDK** - Multi-platform SDK (Python, TypeScript, Go, .NET) for embedding Copilot's agentic workflows into applications. Exposes the same production-tested agent runtime behind Copilot CLI—you define agent behavior, Copilot handles planning, tool invocation, file edits, and more
 - **Microsoft Agent Framework** - Framework for building and orchestrating AI agents
 - **Microsoft Foundry** - Enterprise-grade AI platform for building, deploying, and managing AI applications at scale
+- **AI Runway with KAITO** - Kubernetes-native model serving for OpenAI-compatible inference endpoints, including CPU-friendly local LLM deployment patterns
 
 ### Security & Hardening
 
 - **5-Layer Defense Architecture** - Comprehensive container security with secrets rotation, DNS auditing, seccomp profiles, egress monitoring, and tool allowlisting
 - **OpenClaw Gateway** - AI agent gateway with token-based authentication, tool sandboxing, and configurable agent orchestration
+- **Kata microVM Isolation** - AKS pod sandboxing that gives each agent pod its own lightweight VM boundary and isolated guest kernel
 
 ### Cloud-Native Deployment on Microsoft Azure
 
@@ -39,6 +41,7 @@ Multi-AI-Agents-Cloud-Native/
 ├── README.md
 └── code/
     ├── AKS_MicroVM/                # Copilot SDK Agent on AKS with Kata microVM Isolation
+    ├── BYOT_Dev/                   # Bring Your Own Tower of Agents with AI Runway + MCP
     ├── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
     ├── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
     └── openclaw_security/          # Security-Hardened AI Podcast Generator
@@ -340,6 +343,82 @@ curl -s -X POST \
 
 ---
 
+### 5. BYOT - Bring Your Own Tower of Agents on AKS
+
+📁 **Location**: [`code/BYOT_Dev/`](./code/BYOT_Dev/)
+
+An end-to-end reference build that runs a four-agent SDLC tower on **AKS**, with **AI Runway** serving `Qwen/Qwen3-0.6B` through an OpenAI-compatible API and each agent exposed as a remote **MCP server** for GitHub Copilot Chat.
+
+#### Agent Tower
+
+| Agent | Role | Example MCP Tools |
+|-------|------|-------------------|
+| **Requirements Agent** | Turns product ideas into structured requirements | `gather_requirements`, `clarify_requirement`, `produce_requirements_doc` |
+| **Code Agent** | Generates, refactors, and reviews implementation code | `implement_from_requirements`, `write_module`, `refactor_code`, `review_code` |
+| **Test Agent** | Produces test plans, test cases, and coverage guidance | `generate_test_plan`, `generate_test_cases`, `review_coverage` |
+| **Deploy Agent** | Creates deployment artifacts for containerized workloads | `generate_dockerfile`, `generate_k8s_manifest`, `produce_deploy_plan` |
+
+#### Architecture Highlights
+
+- **AI Runway Model Serving**: KAITO + llama.cpp hosts `Qwen/Qwen3-0.6B` as an OpenAI-compatible Chat Completions endpoint
+- **Microsoft Agent Framework Runtime**: Each MCP tool wraps the AI Runway endpoint through `OpenAIChatCompletionClient`
+- **Kata-Isolated Agents**: Every agent Deployment uses `runtimeClassName: kata-vm-isolation`, non-root execution, read-only root filesystem, dropped Linux capabilities, and seccomp RuntimeDefault
+- **One Agent per Node**: Pod anti-affinity keeps the four BYOT agents on distinct AKS nodes for stronger workload separation
+- **Copilot Chat Validation**: `.vscode/mcp.json` registers the four public Azure LoadBalancer MCP endpoints for use directly inside VS Code
+- **NetworkPolicy Egress Control**: Agent traffic is constrained to DNS and the AI Runway model namespace
+
+#### Data Flow
+
+```
+VS Code + GitHub Copilot Chat
+  -> MCP over Streamable HTTP
+  -> Azure LoadBalancer per agent
+  -> Kata microVM-isolated FastMCP agent
+  -> Microsoft Agent Framework
+  -> AI Runway OpenAI-compatible endpoint
+  -> Qwen/Qwen3-0.6B on KAITO / llama.cpp
+```
+
+#### Technologies Used
+
+- Python 3.12 with Starlette and FastMCP
+- Microsoft Agent Framework with OpenAI-compatible chat completion client
+- AI Runway controller with KAITO provider and llama.cpp engine
+- Azure Kubernetes Service with KataVmIsolation and Azure Linux nodes
+- Azure Container Registry and Azure LoadBalancer Services
+- GitHub Copilot Chat remote MCP server configuration
+
+#### Quick Start
+
+```bash
+cd code/BYOT_Dev
+
+# 1. Provision AKS with Kata + ACR + Azure Linux
+bash infra/01-create-aks-kata.sh
+
+# 2. Install AI Runway controller and KAITO provider
+bash infra/02-install-airunway.sh
+
+# 3. Deploy Qwen/Qwen3-0.6B on CPU
+bash infra/03-deploy-qwen.sh
+kubectl -n airunway-models wait --for=condition=Ready modeldeployment/llama3-2-1b-cpu --timeout=20m
+
+# 4. Build and push the shared agent image
+bash infra/04-build-push-agents.sh
+
+# 5. Deploy the four Kata-isolated MCP agents
+bash infra/05-deploy-agents.sh
+
+# 6. Print the public MCP endpoints for GitHub Copilot Chat
+bash infra/06-show-mcp-endpoints.sh
+```
+
+After deployment, update the bundled [`code/BYOT_Dev/.vscode/mcp.json`](./code/BYOT_Dev/.vscode/mcp.json) with the LoadBalancer IPs printed by step 6. In Copilot Chat agent mode, you can ask: *"Use the byot tower to take this idea - a URL shortener with click analytics - from requirements through deployment."*
+
+👉 [View Full Documentation](./code/BYOT_Dev/README.md)
+
+---
+
 ## Prerequisites
 
 Before running any example, ensure you have:
@@ -350,7 +429,9 @@ Before running any example, ensure you have:
 - **Docker Compose**: v2 required for the OpenClaw security example
 - **Azure CLI**: For Azure deployments
 - **kubectl**: For Kubernetes deployments
+- **Helm**: Required for installing AI Runway components in the BYOT example
 - **kind**: For local Kubernetes clusters (Sidecar example)
+- **AKS Preview Extension**: Required when provisioning AKS clusters with KataVmIsolation in the BYOT example
 - **SerpAPI Key**: For DeepSearch in the podcast generator ([get key](https://serpapi.com/manage-api-key))
 - **Git**: For version control
 
@@ -359,8 +440,9 @@ Before running any example, ensure you have:
 | Service | Purpose |
 |---------|---------|
 | **Azure Container Apps** | Serverless container hosting for agents |
-| **Azure Kubernetes Service (AKS)** | Managed Kubernetes for Sidecar pattern deployments |
+| **Azure Kubernetes Service (AKS)** | Managed Kubernetes for Sidecar, Kata microVM, and BYOT tower deployments |
 | **Azure Container Registry** | Private Docker image storage |
+| **Azure Load Balancer** | Public MCP endpoints for remotely hosted BYOT agents |
 | **Azure Resource Groups** | Resource organization and management |
 
 ## Related Resources
@@ -370,6 +452,9 @@ Before running any example, ensure you have:
 - [A2A Protocol Specification](https://a2a-protocol.org/latest/)
 - [GitHub Copilot SDK](https://github.com/github/copilot-sdk)
 - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+- [AI Runway](https://github.com/kaito-project/airunway)
+- [KAITO](https://github.com/kaito-project/kaito)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)
 - [Azure Kubernetes Service Documentation](https://learn.microsoft.com/en-us/azure/aks/)
 - [Kubernetes Sidecar Containers](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)
