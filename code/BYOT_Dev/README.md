@@ -1,5 +1,7 @@
 # BYOT — Bring Your Own Tower of Agents
 
+![arch](./imgs/arch.png)
+
 End-to-end reference build on AKS that combines:
 
 | Layer | Component | Role |
