@@ -1,0 +1,41 @@
+# Lock down the agents:
+#   - Ingress: any source on port 8080 (LoadBalancer exposes the MCP endpoint
+#     publicly; kubectl proxy from kube-system still works the same way).
+#   - Egress:  only DNS + the AI Runway model Service in airunway-models.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: byot-agents-default
+  namespace: agents
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: byot
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # AI Runway model Service (Service port is 80, llamacpp targetPort 5000)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: airunway-models
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 5000

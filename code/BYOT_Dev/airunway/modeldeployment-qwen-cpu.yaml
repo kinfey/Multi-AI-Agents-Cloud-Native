@@ -1,0 +1,56 @@
+# ----------------------------------------------------------------------------
+# ModelDeployment: Llama 3.2 1B Instruct on CPU via KAITO + llama.cpp (AIKit).
+#
+# Why these choices:
+#   - provider.name: kaito        → KAITO is the only AI Runway provider with
+#                                    cpuSupport: true today.
+#   - engine.type:  llamacpp      → llama.cpp is the CPU-friendly engine
+#                                    (vLLM/SGLang/TRT-LLM are GPU-only).
+#   - spec.image                   → AIKit prebuilds an OCI image that bundles
+#                                    a llama.cpp server + GGUF weights. The
+#                                    v0.5.0 KAITO provider requires this for
+#                                    the llamacpp engine. The published Qwen
+#                                    image set does not include Qwen3-0.6B
+#                                    today; Llama 3.2 1B is the smallest CPU
+#                                    image AIKit ships, served as OpenAI model
+#                                    name "llama-3.2-1b-instruct".
+#   - resources.gpu: omitted      → forces CPU scheduling.
+#   - serving.mode: aggregated    → single replica serves the whole model.
+#   - scaling.replicas: 1         → one node deployment as requested.
+# ----------------------------------------------------------------------------
+apiVersion: airunway.ai/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: llama3-2-1b-cpu
+  namespace: airunway-models
+spec:
+  image: ghcr.io/kaito-project/aikit/llama3.2:1b
+  model:
+    id: "kaito/llama3.2-1b"
+    source: huggingface
+  engine:
+    type: llamacpp
+    trustRemoteCode: false
+  provider:
+    name: kaito
+    # KAITO defaults instanceType to a GPU SKU even when our engine is llamacpp
+    # (CPU). Use the override escape hatch to pin to an existing CPU node and
+    # turn off node provisioning so it picks up our nodepool1 instance.
+    overrides:
+      resource:
+        instanceType: Standard_D4s_v3
+        preferredNodes:
+          - aks-nodepool1-21523631-vmss000001
+  serving:
+    mode: aggregated
+  # Pin to the existing CPU nodepool so KAITO uses an existing node instead
+  # of provisioning a brand-new GPU node via NodeClaim.
+  nodeSelector:
+    agentpool: nodepool1
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+  scaling:
+    replicas: 1
+  gateway:
+    enabled: false   # We talk to the Service directly; no Gateway API needed.

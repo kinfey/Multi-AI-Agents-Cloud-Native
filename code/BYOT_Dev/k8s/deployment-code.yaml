@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: byot-code
+  namespace: agents
+  labels:
+    app: byot-code
+    app.kubernetes.io/part-of: byot
+    byot.role: code
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: byot-code
+  template:
+    metadata:
+      labels:
+        app: byot-code
+        byot.role: code
+      annotations:
+        io.katacontainers.config.hypervisor.default_memory: "2048"
+    spec:
+      runtimeClassName: kata-vm-isolation
+      automountServiceAccountToken: false
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/part-of: byot
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: REPLACE_WITH_AGENT_IMAGE
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: AGENT_ROLE
+              value: "code"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PORT
+              value: "8080"
+            - name: AIRUNWAY_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: byot-airunway
+                  key: AIRUNWAY_BASE_URL
+            - name: AIRUNWAY_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: byot-airunway
+                  key: AIRUNWAY_MODEL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi

@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: byot-requirements
+  namespace: agents
+  labels:
+    app: byot-requirements
+    app.kubernetes.io/part-of: byot
+    byot.role: requirements
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: byot-requirements
+  template:
+    metadata:
+      labels:
+        app: byot-requirements
+        byot.role: requirements
+      annotations:
+        # Pre-allocate memory in the Kata microVM so the first MCP call doesn't
+        # pay the hypervisor warm-up cost.
+        io.katacontainers.config.hypervisor.default_memory: "2048"
+    spec:
+      runtimeClassName: kata-vm-isolation
+      automountServiceAccountToken: false
+      # Hard one-per-node placement: no two BYOT agent pods may share a node.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/part-of: byot
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agent
+          image: REPLACE_WITH_AGENT_IMAGE
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: AGENT_ROLE
+              value: "requirements"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PORT
+              value: "8080"
+            - name: AIRUNWAY_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: byot-airunway
+                  key: AIRUNWAY_BASE_URL
+            - name: AIRUNWAY_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: byot-airunway
+                  key: AIRUNWAY_MODEL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi

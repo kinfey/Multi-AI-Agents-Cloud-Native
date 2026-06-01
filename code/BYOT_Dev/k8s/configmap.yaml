@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: byot-airunway
+  namespace: agents
+data:
+  # OpenAI-compatible endpoint served by the AI Runway ModelDeployment.
+  AIRUNWAY_BASE_URL: "http://llama3-2-1b-cpu.airunway-models.svc.cluster.local/v1"
+  # Model name to send in the chat completions request. Must match what the
+  # llama.cpp server inside the AIKit image advertises.
+  AIRUNWAY_MODEL: "llama-3.2-1b-instruct"

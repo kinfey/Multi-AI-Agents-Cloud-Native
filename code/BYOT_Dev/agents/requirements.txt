@@ -1,0 +1,14 @@
+# Microsoft Agent Framework + OpenAI provider (uses base_url to target any OpenAI-compatible endpoint)
+agent-framework
+agent-framework-openai
+
+# MCP server SDK (FastMCP + Streamable HTTP)
+mcp>=1.6.0
+
+# ASGI runtime
+starlette>=0.40.0
+uvicorn[standard]>=0.32.0
+
+# Misc
+httpx>=0.27.0
+pydantic>=2.7.0
