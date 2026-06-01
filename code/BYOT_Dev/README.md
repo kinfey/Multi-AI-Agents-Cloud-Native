@@ -1,4 +1,4 @@
-# BYOT — Bring Your Own Tower of Agents
+# Token economics–driven architecture: hybrid models, AI Runway, AKS Kata MicroVM, MCP
 
 ![arch](./imgs/arch.png)
 
