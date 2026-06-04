@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: podcast-pipeline
+  labels:
+    app.kubernetes.io/name: fifa-2026-podcast
+    # Enforce baseline Pod Security Standards. The pod templates already
+    # comply (non-root, no caps, seccomp RuntimeDefault, read-only root fs).
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest

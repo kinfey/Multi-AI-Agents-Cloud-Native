@@ -26,6 +26,7 @@ Multi-agent systems represent the next evolution in AI applications, where speci
 - **5-Layer Defense Architecture** - Comprehensive container security with secrets rotation, DNS auditing, seccomp profiles, egress monitoring, and tool allowlisting
 - **OpenClaw Gateway** - AI agent gateway with token-based authentication, tool sandboxing, and configurable agent orchestration
 - **Kata microVM Isolation** - AKS pod sandboxing that gives each agent pod its own lightweight VM boundary and isolated guest kernel
+- **Hyperlight Wasm Sandbox** - Per-call snapshot-restored Wasm microVMs for safely running LLM-generated code with a single `execute_code` tool surface and host-mediated `call_tool` bridges
 
 ### Cloud-Native Deployment on Microsoft Azure
 
@@ -44,6 +45,7 @@ Multi-AI-Agents-Cloud-Native/
     ├── BYOT_Dev/                   # Bring Your Own Tower of Agents with AI Runway + MCP
     ├── GitHubCopilotAgents_A2A/    # A2A Protocol Multi-Agent Example
     ├── GitHubCopilotSideCar/       # Kubernetes Sidecar Pattern Example
+    ├── harnessagent_sandbox_demo/  # Harness Agents on Hyperlight Wasm Sandbox (FIFA 2026 podcast pipeline)
     └── openclaw_security/          # Security-Hardened AI Podcast Generator
 ```
 
@@ -416,6 +418,74 @@ bash infra/06-show-mcp-endpoints.sh
 After deployment, update the bundled [`code/BYOT_Dev/.vscode/mcp.json`](./code/BYOT_Dev/.vscode/mcp.json) with the LoadBalancer IPs printed by step 6. In Copilot Chat agent mode, you can ask: *"Use the byot tower to take this idea - a URL shortener with click analytics - from requirements through deployment."*
 
 👉 [View Full Documentation](./code/BYOT_Dev/README.md)
+
+---
+
+### 6. Harness Agents on Hyperlight Wasm Sandbox
+
+📁 **Location**: [`code/harnessagent_sandbox_demo/`](./code/harnessagent_sandbox_demo/)
+
+A local, **graph-orchestrated multi-agent workflow** that produces a daily Mandarin podcast script about the **FIFA World Cup 2026**. Three LLM agents built with **Microsoft Agent Framework**'s `create_harness_agent` + `FoundryChatClient` are wired into a `WorkflowBuilder` graph, and every piece of LLM-generated code runs inside a single **Hyperlight Wasm sandbox** with per-call snapshot restore.
+
+#### Workflow Graph
+
+| Node | Kind | Tools visible to model | Responsibility |
+|------|------|------------------------|----------------|
+| `prepare_search_prompt` | adapter | — | Build the SearchAgent prompt from the target date |
+| **SearchAgent** | harness agent (CodeAct) | `execute_code` (+ guest `call_tool("fetch_url", ...)`) | Fetch the BBC World Cup listing, verify article URLs, return top 5 stories as JSON |
+| **ContentAgent** | harness agent (CodeAct) | `execute_code` (+ guest `call_tool("fetch_url", ...)`) | Build a 5-section podcast outline with DeepSearch enrichment |
+| **GenScriptAgent** | harness agent (CodeAct) | `execute_code` only | Produce zh-CN + zh-TW on-air scripts; mandatorily verifies Han-character count is 1500–1900 |
+| `save_scripts` | deterministic Executor | — | Splits fenced blocks, writes both `.txt` files locally and uploads to Azure Blob Storage |
+
+#### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **CodeAct Pattern** | Model only sees one tool — `execute_code`; capabilities like `fetch_url` are reachable from inside the Wasm guest via `call_tool(...)` |
+| **One Sandbox Per Run** | All three agents share a single `HyperlightRuntime`; every `execute_code` call restores a clean snapshot so state can't leak between agents or turns |
+| **Skill-Based Prompts** | Role prompts live as file-based Agent Skills under `skills/` (SKILL.md packages); agents carry only a tiny stub and load skills via `load_skill` |
+| **BBC-Only Allowlist** | Host-side `fetch_url` bridge restricted to `www.bbc.com` / `bbc.com` with ≤8 KB compact response (STATUS / URL / TITLE / LINKS / BODY) |
+| **Dual Tool Counters** | `function_middleware` counts model-direct `execute_code`; `on_call=` callback counts guest-initiated `fetch_url` that bypasses middleware |
+| **Deterministic Persistence** | `save_scripts` is a non-LLM Executor that parses fenced blocks and writes `<YYMMDD>.simple.zh.txt` + `<YYMMDD>.tranditional.zh.txt` |
+
+#### Cloud-Native Architecture (AKS)
+
+- **Workload Identity**: User-Assigned Managed Identity federates on the ServiceAccount's OIDC subject — no client secrets, no service principal passwords in-cluster
+- **Hyperlight Device Plugin**: DaemonSet injects `/dev/kvm` via CDI when the pod requests `hyperlight.dev/hypervisor: "1"`; pod stays unprivileged (`runAsNonRoot`, read-only rootfs, dropped caps)
+- **Durable Output**: `save_scripts` writes a PVC copy first, then best-effort uploads to Azure Blob Storage under `<container>/<YYMMDD>/`
+- **CronJob Driven**: Daily CronJob in the `podcast-pipeline` namespace (PodSecurity: restricted) pulls images from ACR
+
+#### Technologies Used
+
+- Python 3.12 with Microsoft Agent Framework (`create_harness_agent`, `WorkflowBuilder`)
+- Hyperlight Wasm sandbox with Python guest
+- `FoundryChatClient` + `AzureCliCredential` / `DefaultAzureCredential`
+- Azure AI Foundry, Azure Blob Storage, AKS with Workload Identity, Azure Container Registry
+
+#### Quick Start
+
+```bash
+cd code/harnessagent_sandbox_demo
+
+# 1. Install Python deps
+pip install -r requirements.txt
+
+# 2. Configure Foundry + (optional) Azure Storage
+cp .env.sample .env
+# edit .env: FOUNDRY_PROJECT_ENDPOINT, FOUNDRY_MODEL_DEPLOYMENT, AZURE_STORAGE_*
+
+# 3. Authenticate to Azure
+az login
+
+# 4. Run the workflow
+python main.py
+
+# Outputs:
+#   ./outputs/<YYMMDD>/<YYMMDD>.simple.zh.txt        (zh-CN)
+#   ./outputs/<YYMMDD>/<YYMMDD>.tranditional.zh.txt  (zh-TW)
+```
+
+👉 [View Full Documentation](./code/harnessagent_sandbox_demo/README.md)
 
 ---
 

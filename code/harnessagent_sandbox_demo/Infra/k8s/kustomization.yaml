@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: podcast-pipeline
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - cronjob.yaml
+  # job-once.yaml is intentionally omitted from the default bundle —
+  # apply it ad-hoc with `kubectl apply -f Infra/k8s/job-once.yaml`.
+
+commonLabels:
+  app.kubernetes.io/name: fifa-2026-podcast
+  app.kubernetes.io/part-of: hyperlight-on-kubernetes
+
+images:
+  - name: REPLACE-ME.azurecr.io/fifa-2026-podcast
+    newName: fifia2026podcastacr.azurecr.io/fifa-2026-podcast
+    newTag: latest

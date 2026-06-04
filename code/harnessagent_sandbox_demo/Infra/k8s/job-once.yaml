@@ -1,0 +1,72 @@
+# Manual one-shot run for smoke-testing the image.
+#   kubectl apply -f Infra/k8s/job-once.yaml
+#   kubectl logs -n podcast-pipeline -l job-name=podcast-once -f
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: podcast-once
+  namespace: podcast-pipeline
+  labels:
+    app.kubernetes.io/name: fifa-2026-podcast
+    app.kubernetes.io/component: oneshot
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fifa-2026-podcast
+        app.kubernetes.io/component: oneshot
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: podcast-pipeline
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      nodeSelector:
+        hyperlight.dev/hypervisor: kvm
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pipeline
+          image: REPLACE-ME.azurecr.io/fifa-2026-podcast:latest
+          imagePullPolicy: IfNotPresent
+          # Override with `--date YYYY-MM-DD` if you want a back-fill.
+          args: []
+          envFrom:
+            - configMapRef:
+                name: podcast-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+              hyperlight.dev/hypervisor: "1"
+          volumeMounts:
+            - name: outputs
+              mountPath: /var/podcast/outputs
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/podcast
+      volumes:
+        - name: outputs
+          persistentVolumeClaim:
+            claimName: podcast-outputs
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: home
+          emptyDir:
+            sizeLimit: 64Mi

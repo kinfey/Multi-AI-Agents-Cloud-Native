@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+outputs
+Infra
+.env
+.env.*
+README*.md
+docs

@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kvm-check
+  namespace: default
+spec:
+  restartPolicy: Never
+  hostPID: true
+  containers:
+    - name: c
+      image: mcr.microsoft.com/cbl-mariner/busybox:2.0
+      command:
+        - sh
+        - -c
+        - |
+          echo "=== /dev/kvm ==="
+          ls -l /dev/kvm 2>&1 || echo MISSING
+          echo "=== /dev/mshv ==="
+          ls -l /dev/mshv 2>&1 || echo MISSING
+          echo "=== vmx/svm flags ==="
+          grep -E "vmx|svm" /proc/cpuinfo | head -1 || echo "no nested virt flags"
+          echo "=== kernel ==="
+          uname -a
+          sleep 1
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: dev
+          mountPath: /dev
+  volumes:
+    - name: dev
+      hostPath:
+        path: /dev

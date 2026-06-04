@@ -1,0 +1,91 @@
+# Daily run of the FIFA 2026 podcast pipeline.
+#
+# Hyperlight integration follows the upstream pattern from
+# https://github.com/hyperlight-dev/hyperlight-on-kubernetes :
+#   - request `hyperlight.dev/hypervisor: "1"` so the device plugin
+#     injects /dev/kvm (or /dev/mshv) via CDI
+#   - target nodes that advertise the hypervisor with a nodeSelector
+#   - keep the rest of the pod fully unprivileged (Pod Security: restricted)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: podcast-daily
+  namespace: podcast-pipeline
+  labels:
+    app.kubernetes.io/name: fifa-2026-podcast
+    app.kubernetes.io/component: cronjob
+spec:
+  # 02:00 UTC every day. Adjust to your editorial calendar.
+  schedule: "0 2 * * *"
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400  # 24h
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: fifa-2026-podcast
+            app.kubernetes.io/component: cronjob
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: podcast-pipeline
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          # Schedule onto a node with /dev/kvm exposed by the device plugin.
+          # Use `mshv` instead on Hyper-V / MSHV nodes.
+          nodeSelector:
+            hyperlight.dev/hypervisor: kvm
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: pipeline
+              image: REPLACE-ME.azurecr.io/fifa-2026-podcast:latest
+              imagePullPolicy: Always
+              args: []  # main.py with default args (today's date)
+              envFrom:
+                - configMapRef:
+                    name: podcast-config
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: "1Gi"
+                limits:
+                  cpu: "2"
+                  memory: "4Gi"
+                  # Device-plugin resource: triggers CDI injection of
+                  # /dev/kvm (or /dev/mshv) into the container.
+                  hyperlight.dev/hypervisor: "1"
+              volumeMounts:
+                - name: outputs
+                  mountPath: /var/podcast/outputs
+                - name: tmp
+                  mountPath: /tmp
+                - name: home
+                  mountPath: /home/podcast
+          volumes:
+            - name: outputs
+              persistentVolumeClaim:
+                claimName: podcast-outputs
+            # readOnlyRootFilesystem=true means we need writable scratch
+            # space for /tmp and the user's home.
+            - name: tmp
+              emptyDir:
+                sizeLimit: 256Mi
+            - name: home
+              emptyDir:
+                sizeLimit: 64Mi

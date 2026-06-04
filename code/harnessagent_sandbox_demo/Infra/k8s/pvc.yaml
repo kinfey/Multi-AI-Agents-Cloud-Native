@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: podcast-outputs
+  namespace: podcast-pipeline
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+  # Use the cluster's default StorageClass. On AKS this is `managed-csi`
+  # (Premium SSD); override if you want `azurefile-csi` for shared access.
+  # storageClassName: managed-csi

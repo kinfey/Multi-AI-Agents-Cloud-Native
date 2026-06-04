@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podcast-config
+  namespace: podcast-pipeline
+data:
+  # Foundry / model
+  FOUNDRY_PROJECT_ENDPOINT: "YOUR_FOUNDRY_PROJECT_ENDPOINT"
+  FOUNDRY_MODEL: "gpt-5.5"
+
+  # Hyperlight guest module — baked into the image at this path.
+  HYPERLIGHT_PYTHON_MODULE_PATH: "/opt/hyperlight/python-sandbox.aot"
+
+  # Output root inside the pod (mounted from the PVC).
+  PODCAST_OUTPUT_DIR: "/var/podcast/outputs"
+
+  # In-cluster credential mode — uses Workload Identity via DefaultAzureCredential.
+  # Set to "cli" only if you ship `az login` state into the image (don't).
+  AZURE_CREDENTIAL_KIND: "default"
+
+  # Azure Blob Storage destination for generated scripts.
+  # When both are set, save_scripts uploads files in addition to writing to PVC.
+  AZURE_STORAGE_ACCOUNT: "fifia2026podcaststg"
+  AZURE_STORAGE_CONTAINER: "podcast-scripts"
