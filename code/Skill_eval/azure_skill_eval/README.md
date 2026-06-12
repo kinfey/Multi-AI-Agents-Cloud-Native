@@ -1,5 +1,7 @@
 # azure_skill_eval
 
+![arch](./imgs/arch.png)
+
 Foundry-backed mirror of `ghcsdk_skill_eval`, rebuilt on:
 
 | Layer | Technology |

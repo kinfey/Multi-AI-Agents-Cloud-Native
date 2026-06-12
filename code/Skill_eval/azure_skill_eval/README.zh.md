@@ -1,5 +1,8 @@
 # azure_skill_eval(中文版)
 
+
+![arch](./imgs/arch.png)
+
 `ghcsdk_skill_eval` 的 Foundry 版本,组件如下:
 
 | 层 | 技术 |
