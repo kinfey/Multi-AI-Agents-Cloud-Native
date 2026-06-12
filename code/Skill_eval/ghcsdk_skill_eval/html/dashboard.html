@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Skill Testing Agent — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7fb;--surface:#ffffff;--card:#ffffff;--border:#d9e0ea;
+  --text:#1f2937;--muted:#5b6474;--accent:#0f6cbd;--accent2:#0a4f8f;
+  --pass:#107c10;--fail:#a4262c;
+  --claude:#6b5fb5;--gpt:#0f6cbd;
+  --radius:8px;--gap:14px;
+}
+html{font-size:15px}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.55;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+header h1{font-size:1.1rem;font-weight:700}
+header .subtitle{color:var(--muted);font-size:.8rem}
+.run-selector-wrap{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.run-selector-wrap label{font-size:.8rem;color:var(--muted)}
+#run-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:.82rem;min-width:200px;cursor:pointer}
+#run-select option{background:var(--card)}
+#lang-select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-size:.82rem;min-width:88px;cursor:pointer}
+#lang-select option{background:var(--card)}
+#updated-badge{font-size:.73rem;color:var(--muted);background:var(--card);padding:4px 10px;border-radius:6px;border:1px solid var(--border);white-space:nowrap}
+nav{display:flex;gap:6px;padding:10px 20px 0;border-bottom:1px solid var(--border);background:var(--surface)}
+nav button{background:none;border:none;color:var(--muted);padding:8px 14px;cursor:pointer;font-size:.86rem;border-bottom:2px solid transparent;transition:.12s;border-radius:4px 4px 0 0}
+nav button:hover{color:var(--text);background:#f2f6fb}
+nav button.active{color:var(--accent);border-bottom-color:var(--accent);background:#f2f6fb}
+main{padding:16px 20px;max-width:1360px;margin:0 auto}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:var(--gap);margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.stat-card .label{font-size:.73rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.stat-card .value{font-size:1.6rem;font-weight:700}
+.stat-card .sub{font-size:.76rem;color:var(--muted);margin-top:2px}
+.c-pass{color:var(--pass)}.c-fail{color:var(--fail)}.c-acc{color:var(--accent)}.c-gpt{color:var(--gpt)}.c-claude{color:var(--claude)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:24px}
+.charts-grid.wide{grid-template-columns:1fr}
+@media(max-width:860px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.chart-card h3{font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.chart-card canvas{max-height:290px}
+.heatmap-wrap{overflow-x:auto}
+.heatmap{border-collapse:collapse;width:100%;font-size:.76rem}
+.heatmap th{padding:5px 8px;color:var(--muted);font-weight:500;white-space:nowrap;text-align:left;border-bottom:1px solid var(--border)}
+.heatmap td{padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:center}
+.heatmap td.row-label{text-align:left;color:var(--text);font-weight:500}
+.cell-pass{background:rgba(16,124,16,.12);color:var(--pass)}
+.cell-fail{background:rgba(164,38,44,.12);color:var(--fail)}
+.cell-na{color:var(--muted)}
+.run-history-table{border-collapse:collapse;width:100%;font-size:.82rem}
+.run-history-table th{background:#f4f7fb;padding:9px 14px;text-align:left;border:1px solid var(--border);color:var(--muted)}
+.run-history-table td{padding:8px 14px;border:1px solid var(--border)}
+.run-history-table tr:nth-child(even) td{background:#fafcff}
+.run-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:.8rem}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filter-bar select,.filter-bar input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 11px;border-radius:6px;font-size:.83rem}
+.filter-bar label{font-size:.83rem;color:var(--muted)}
+.scenario-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.sc-header{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}
+.sc-header:hover{background:#f6f9fd}
+.sc-id{font-weight:700;font-size:.8rem;color:var(--muted);min-width:68px}
+.sc-title{flex:1;font-size:.9rem}
+.sc-strategy{font-size:.76rem;color:var(--muted);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-badges{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:.71rem;font-weight:600}
+.badge.pass{background:rgba(16,124,16,.12);color:var(--pass);border:1px solid rgba(16,124,16,.25)}
+.badge.fail{background:rgba(164,38,44,.12);color:var(--fail);border:1px solid rgba(164,38,44,.25)}
+.badge.model-claude{background:rgba(107,95,181,.12);color:var(--claude);border:1px solid rgba(107,95,181,.25)}
+.badge.model-gpt{background:rgba(15,108,189,.12);color:var(--gpt);border:1px solid rgba(15,108,189,.25)}
+.badge.dur{background:rgba(15,108,189,.08);color:var(--accent);border:1px solid rgba(15,108,189,.2)}
+.chevron{color:var(--muted);transition:.2s;font-size:.88rem}
+.sc-header.open .chevron{transform:rotate(90deg)}
+.sc-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.sc-body.open{display:block}
+.sc-tabs{display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.sc-tab{background:none;border:none;color:var(--muted);padding:7px 14px;cursor:pointer;font-size:.8rem;border-bottom:2px solid transparent;transition:.14s}
+.sc-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.sc-tab:hover:not(.active){color:var(--text)}
+.sc-pane{display:none}.sc-pane.active{display:block}
+.prompt-box{background:#f8fafc;border:1px solid var(--border);border-radius:7px;padding:12px;font-family:'Consolas','Menlo',monospace;font-size:.78rem;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow-y:auto;color:#243248}
+.md-output{background:#f8fafc;border:1px solid var(--border);border-radius:7px;padding:14px 18px;max-height:480px;overflow-y:auto}
+.md-output h1,.md-output h2,.md-output h3,.md-output h4{color:var(--accent);margin:.7em 0 .25em}
+.md-output h1{font-size:1rem}.md-output h2{font-size:.94rem}.md-output h3{font-size:.88rem}
+.md-output p{margin:.35em 0;font-size:.85rem}
+.md-output ul,.md-output ol{padding-left:1.3em;margin:.25em 0;font-size:.85rem}
+.md-output li{margin:.12em 0}
+.md-output strong{color:var(--accent2)}
+.md-output code{background:#eaf2fb;padding:1px 4px;border-radius:3px;font-size:.78rem}
+.md-output pre{background:#edf4fb;padding:10px;border-radius:5px;overflow-x:auto;font-size:.78rem}
+.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:7px}
+.check-item{display:flex;align-items:flex-start;gap:7px;background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:.76rem}
+.check-icon{font-size:.88rem;flex-shrink:0;margin-top:1px}
+.check-id{font-weight:600;margin-bottom:1px}
+.check-ev{color:var(--muted);font-size:.7rem;word-break:break-all}
+.turns-list{display:flex;flex-direction:column;gap:9px}
+.turn-item{background:#f8fafc;border:1px solid var(--border);border-radius:7px;padding:11px 13px}
+.turn-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.turn-num{font-weight:700;font-size:.78rem;color:var(--muted)}
+.turn-prompt{font-family:'Consolas','Menlo',monospace;font-size:.75rem;color:#243248;white-space:pre-wrap;word-break:break-word;margin-bottom:5px;max-height:150px;overflow-y:auto}
+.turn-output{font-size:.76rem;color:var(--muted);white-space:pre-wrap;word-break:break-word;max-height:110px;overflow-y:auto}
+.cmp-table-wrap{overflow-x:auto}
+.cmp-table{border-collapse:collapse;width:100%;font-size:.81rem}
+.cmp-table th{background:#f4f7fb;padding:9px 13px;text-align:left;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.cmp-table td{padding:8px 13px;border:1px solid var(--border);vertical-align:top}
+.cmp-table tr:nth-child(even) td{background:#fafcff}
+.cmp-table .kp{max-width:210px;white-space:normal}
+.cmp-table .strategy{max-width:170px;white-space:normal;color:var(--muted);font-size:.74rem}
+.win{color:var(--pass);font-weight:700}.loss{color:var(--fail)}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:200}
+#loading .spinner{width:42px;height:42px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading .msg{color:var(--muted);font-size:.88rem}
+#error-banner{display:none;background:rgba(164,38,44,.08);border:1px solid rgba(164,38,44,.28);border-radius:8px;padding:13px 16px;margin:16px 0;font-size:.85rem;color:var(--fail)}
+.empty{color:var(--muted);font-size:.85rem;padding:22px;text-align:center}
+.section-title{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:20px 0 11px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="msg" id="loading-msg">Loading runs...</div>
+</div>
+<header>
+  <span style="font-size:1.1rem;color:var(--accent);font-weight:700">■</span>
+  <div>
+    <h1 id="title-main">Skill Testing Agent &mdash; Dashboard</h1>
+    <div class="subtitle" id="title-sub">Adversarial robustness benchmark &middot; Educational video script generator</div>
+  </div>
+  <div class="run-selector-wrap">
+    <label id="label-run">Run:</label>
+    <select id="run-select"><option value="">&#x2014; loading &#x2014;</option></select>
+    <label id="label-lang">Lang:</label>
+    <select id="lang-select">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+    </select>
+    <div id="updated-badge">&#x2013;</div>
+  </div>
+</header>
+<nav id="main-nav">
+  <button class="active" data-tab="overview" id="nav-overview">Overview</button>
+  <button data-tab="charts" id="nav-charts">Charts</button>
+  <button data-tab="scenarios" id="nav-scenarios">Scenarios</button>
+  <button data-tab="comparison" id="nav-comparison">Comparison</button>
+  <button data-tab="history" id="nav-history">Run History</button>
+</nav>
+<main>
+  <div id="error-banner"></div>
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="section-title" id="sec-overview-1">Format-check pass rate by model</div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3 id="chart-title-pass-rate">Pass Rate per Case</h3><canvas id="chart-pass-rate"></canvas></div>
+      <div class="chart-card"><h3 id="chart-title-avg-score">Avg Format Score by Model</h3><canvas id="chart-avg-score"></canvas></div>
+    </div>
+    <div class="section-title" id="sec-overview-2">Check dimension heatmap</div>
+    <div class="chart-card">
+      <div class="heatmap-wrap"><table class="heatmap" id="heatmap-table"><tbody></tbody></table></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-charts">
+    <div class="charts-grid">
+      <div class="chart-card"><h3 id="chart-title-strategy">Attack Strategy &mdash; Pass Rate</h3><canvas id="chart-strategy"></canvas></div>
+      <div class="chart-card"><h3 id="chart-title-duration">Response Duration (s) by Case</h3><canvas id="chart-duration"></canvas></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card"><h3 id="chart-title-check-fail">Check Dimension Fail Count</h3><canvas id="chart-checks-fail"></canvas></div>
+      <div class="chart-card"><h3 id="chart-title-score-dist">Score Distribution</h3><canvas id="chart-score-dist"></canvas></div>
+    </div>
+    <div class="charts-grid wide" id="rubric-section" style="display:none">
+      <div class="chart-card"><h3 id="chart-title-rubric">LLM-as-Judge Rubric Scores</h3><canvas id="chart-rubric" style="max-height:260px"></canvas></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-scenarios">
+    <div class="filter-bar">
+      <label id="label-filter-model">Model:</label><select id="filter-model"><option value="all">All</option></select>
+      <label id="label-filter-result">Result:</label>
+      <select id="filter-result">
+        <option value="all">All</option><option value="pass">Pass</option><option value="fail">Fail</option>
+      </select>
+      <label id="label-filter-search">Search:</label>
+      <input id="filter-search" type="text" placeholder="knowledge point / strategy..." style="min-width:190px"/>
+    </div>
+    <div id="scenarios-list"></div>
+  </div>
+  <div class="tab-panel" id="tab-comparison">
+    <div class="section-title" id="sec-comparison">Side-by-side model comparison</div>
+    <div class="cmp-table-wrap">
+      <table class="cmp-table"><thead id="cmp-thead"></thead><tbody id="cmp-tbody"></tbody></table>
+    </div>
+  </div>
+  <div class="tab-panel" id="tab-history">
+    <div class="section-title" id="sec-history">All runs in artifacts/</div>
+    <div style="overflow-x:auto">
+      <table class="run-history-table" id="history-table">
+        <thead><tr><th id="history-h-runid">Run ID</th><th id="history-h-datetime">Date/Time</th><th id="history-h-cases">Cases</th><th id="history-h-models">Models</th><th id="history-h-pass-total">Pass / Total</th><th id="history-h-pass-rate">Pass %</th><th id="history-h-action">Action</th></tr></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<script>
+var ALL_RUNS=[],ALL_DATA=[],MODELS=[],CURRENT_RUN_ID=null,_charts={};
+var CURRENT_LANG=localStorage.getItem('dashboard_lang')||'zh';
+var CHECK_IDS=["h1_title","h2_audience","h2_duration","h2_objectives","h2_script","h3_open","h3_body","h3_close","h2_subtitles","headings_in_order","no_code_fence_wrapper","exactly_3_objectives","exactly_3_subtitles","open_nonempty","main_nonempty","close_nonempty","single_h1"];
+var CD={responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#7b83a6',font:{size:11}}},tooltip:{backgroundColor:'#21263a',titleColor:'#e0e4f0',bodyColor:'#7b83a6',borderColor:'#2e3450',borderWidth:1}},scales:{x:{ticks:{color:'#7b83a6',font:{size:10}},grid:{color:'#1e2336'}},y:{ticks:{color:'#7b83a6',font:{size:10}},grid:{color:'#1e2336'}}}};
+function pct(v){return (v*100).toFixed(0)+'%'}
+function ms(v){return v>=1000?(v/1000).toFixed(1)+'s':v+'ms'}
+function mColor(l){return l.toLowerCase().includes('claude')?'#a78bfa':'#60a5fa'}
+function mBg(l){return l.toLowerCase().includes('claude')?'rgba(167,139,250,.18)':'rgba(96,165,250,.18)'}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function makeChart(id,cfg){if(_charts[id]){_charts[id].destroy();delete _charts[id];}var c=document.getElementById(id);if(!c)return;_charts[id]=new Chart(c,cfg);}
+
+var I18N={
+  zh:{
+    titleMain:'Skill Testing Agent - 仪表盘',titleSub:'对抗鲁棒性评测 · 教学视频脚本生成器',
+    labelRun:'运行:',labelLang:'语言:',
+    navOverview:'总览',navCharts:'图表',navScenarios:'场景',navComparison:'对比',navHistory:'运行历史',
+    secOverview1:'按模型的格式通过率',secOverview2:'检查维度热力图',secComparison:'模型并排对比',secHistory:'artifacts/ 下的全部运行',
+    chartPassRate:'每个场景的通过率',chartAvgScore:'按模型的平均格式分',chartStrategy:'攻击策略 - 通过率',chartDuration:'各场景响应时长 (秒)',
+    chartCheckFail:'检查维度失败次数',chartScoreDist:'分数分布',chartRubric:'LLM 裁判 Rubric 分数',
+    filterModel:'模型:',filterResult:'结果:',filterSearch:'搜索:',searchPlaceholder:'知识点 / 策略...',
+    all:'全部',pass:'通过',fail:'失败',loading:'加载中...',
+    totalRecords:'总记录数',loadedArtifacts:'已加载 artifact 文件',formatPass:'格式通过',passedSuffix:'通过',
+    avgScore:'平均分',deterministicValidator:'确定性校验器',avgDuration:'平均耗时',perRequest:'每次请求',
+    casesSuffix:'个场景',
+    caseCol:'场景',modelCol:'模型',checkCol:'检查项',
+    noMatching:'没有匹配记录',
+    runId:'运行 ID',dateTime:'时间',cases:'场景数',models:'模型',passTotal:'通过 / 总数',passRate:'通过率',action:'操作',
+    load:'加载',current:'当前',latest:'最新',noRuns:'未找到运行记录。请先执行 python main.py。',
+    loadRunsMsg:'加载 runs.json...',loadRunMsg:'加载运行',
+  },
+  en:{
+    titleMain:'Skill Testing Agent - Dashboard',titleSub:'Adversarial robustness benchmark · Educational video script generator',
+    labelRun:'Run:',labelLang:'Lang:',
+    navOverview:'Overview',navCharts:'Charts',navScenarios:'Scenarios',navComparison:'Comparison',navHistory:'Run History',
+    secOverview1:'Format-check pass rate by model',secOverview2:'Check dimension heatmap',secComparison:'Side-by-side model comparison',secHistory:'All runs in artifacts/',
+    chartPassRate:'Pass Rate per Case',chartAvgScore:'Avg Format Score by Model',chartStrategy:'Attack Strategy - Pass Rate',chartDuration:'Response Duration (s) by Case',
+    chartCheckFail:'Check Dimension Fail Count',chartScoreDist:'Score Distribution',chartRubric:'LLM-as-Judge Rubric Scores',
+    filterModel:'Model:',filterResult:'Result:',filterSearch:'Search:',searchPlaceholder:'knowledge point / strategy...',
+    all:'All',pass:'Pass',fail:'Fail',loading:'Loading...',
+    totalRecords:'Total Records',loadedArtifacts:'artifact files loaded',formatPass:'Format Pass',passedSuffix:'passed',
+    avgScore:'Avg Score',deterministicValidator:'deterministic validator',avgDuration:'Avg Duration',perRequest:'per request',
+    casesSuffix:'cases',
+    caseCol:'Case',modelCol:'Model',checkCol:'Check',
+    noMatching:'No matching records.',
+    runId:'Run ID',dateTime:'Date/Time',cases:'Cases',models:'Models',passTotal:'Pass / Total',passRate:'Pass %',action:'Action',
+    load:'Load',current:'current',latest:'latest',noRuns:'No runs found. Run python main.py first.',
+    loadRunsMsg:'Loading runs.json...',loadRunMsg:'Loading run',
+  }
+};
+
+function t(k){return (I18N[CURRENT_LANG]&&I18N[CURRENT_LANG][k])||k}
+
+function applyLang(){
+  document.documentElement.lang = CURRENT_LANG==='zh'?'zh-CN':'en';
+  var m={
+    'title-main':'titleMain','title-sub':'titleSub','label-run':'labelRun','label-lang':'labelLang',
+    'nav-overview':'navOverview','nav-charts':'navCharts','nav-scenarios':'navScenarios','nav-comparison':'navComparison','nav-history':'navHistory',
+    'sec-overview-1':'secOverview1','sec-overview-2':'secOverview2','sec-comparison':'secComparison','sec-history':'secHistory',
+    'chart-title-pass-rate':'chartPassRate','chart-title-avg-score':'chartAvgScore','chart-title-strategy':'chartStrategy','chart-title-duration':'chartDuration',
+    'chart-title-check-fail':'chartCheckFail','chart-title-score-dist':'chartScoreDist','chart-title-rubric':'chartRubric',
+    'label-filter-model':'filterModel','label-filter-result':'filterResult','label-filter-search':'filterSearch',
+    'history-h-runid':'runId','history-h-datetime':'dateTime','history-h-cases':'cases','history-h-models':'models','history-h-pass-total':'passTotal','history-h-pass-rate':'passRate','history-h-action':'action'
+  };
+  Object.keys(m).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t(m[id]);});
+  var si=document.getElementById('filter-search'); if(si)si.placeholder=t('searchPlaceholder');
+  var fr=document.getElementById('filter-result');
+  if(fr){
+    var vals=['all','pass','fail'];
+    var current=fr.value;
+    fr.innerHTML=vals.map(function(v){return '<option value="'+v+'">'+t(v)+'</option>';}).join('');
+    fr.value=current||'all';
+  }
+  var rs=document.getElementById('run-select');
+  if(rs && rs.options.length===0){rs.innerHTML='<option value="">'+t('loading')+'</option>';}
+}
+function showError(msg){var el=document.getElementById('error-banner');el.innerHTML='&#x26A0;&#xFE0F; '+msg;el.style.display='block';}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+function setLoadingMsg(m){document.getElementById('loading-msg').textContent=m;}
+
+async function loadRuns(){
+  setLoadingMsg(t('loadRunsMsg'));
+  try{
+    var r=await fetch('../artifacts/runs.json');
+    if(!r.ok)throw new Error('runs.json not found (HTTP '+r.status+')');
+    ALL_RUNS=await r.json();
+  }catch(e){
+    showError('Cannot load <code>artifacts/runs.json</code>: '+e.message+'<br/>Serve via: <code>python3 -m http.server 8080 --directory /path/to/Skill_eval</code>');
+    return false;
+  }
+  return true;
+}
+
+function populateRunSelector(){
+  var sel=document.getElementById('run-select');
+  sel.innerHTML='';
+  ALL_RUNS.forEach(function(run,i){
+    var opt=document.createElement('option');
+    opt.value=run.run_id;
+    var pass=run.pass_count!=null?run.pass_count:'?';
+    var total=run.total_count!=null?run.total_count:'?';
+    var pRate=(run.pass_count!=null&&run.total_count)?' '+pct(run.pass_count/run.total_count):'';
+    opt.textContent=(i===0?'['+t('latest')+'] ':'')+run.run_id+'  ['+pass+'/'+total+pRate+']  '+(run.updated||'').replace('T',' ').replace('Z','');
+    sel.appendChild(opt);
+  });
+  sel.value=ALL_RUNS[0]&&ALL_RUNS[0].run_id||'';
+}
+
+async function loadRun(runId){
+  CURRENT_RUN_ID=runId;
+  setLoadingMsg(t('loadRunMsg')+' '+runId+'...');
+  document.getElementById('loading').style.display='flex';
+  var runMeta=ALL_RUNS.find(function(r){return r.run_id===runId;})||{};
+  document.getElementById('updated-badge').textContent='&#x1F4C1; '+runId+(runMeta.updated?'  &#x23F1; '+runMeta.updated.replace('T',' ').replace('Z',' UTC'):'');
+  try{
+    var idx=await fetch('../artifacts/'+runId+'/index.json').then(function(r){
+      if(!r.ok)throw new Error('index.json not found for run '+runId);
+      return r.json();
+    });
+    var promises=(idx.files||[]).map(function(f){
+      return fetch('../artifacts/'+runId+'/'+f).then(function(r){return r.json();}).catch(function(){return null;});
+    });
+    var results=await Promise.all(promises);
+    ALL_DATA=results.filter(Boolean);
+    MODELS=[...new Set(ALL_DATA.map(function(d){return d.model_label;}))].sort();
+  }catch(e){
+    showError('Failed to load run '+runId+': '+e.message);
+    hideLoading();
+    return;
+  }
+  rebuildAllPanels();
+  hideLoading();
+}
+
+function rebuildAllPanels(){
+  document.getElementById('error-banner').style.display='none';
+  buildStatsCards();buildPassRateChart();buildAvgScoreChart();buildHeatmap();
+  buildStrategyChart();buildDurationChart();buildCheckFailChart();buildScoreDistChart();
+  buildRubricChart();buildScenarios();buildComparison();buildHistory();
+}
+
+document.getElementById('main-nav').addEventListener('click',function(e){
+  var btn=e.target.closest('button[data-tab]');if(!btn)return;
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+});
+
+document.getElementById('run-select').addEventListener('change',function(e){
+  if(e.target.value)loadRun(e.target.value);
+});
+
+document.getElementById('lang-select').addEventListener('change',function(e){
+  CURRENT_LANG=e.target.value;
+  localStorage.setItem('dashboard_lang',CURRENT_LANG);
+  applyLang();
+  rebuildAllPanels();
+});
+
+function buildStatsCards(){
+  var grid=document.getElementById('stats-grid');
+  var total=ALL_DATA.length;
+  var passCount=ALL_DATA.filter(function(d){return d.overall_pass;}).length;
+  var passRate=total?passCount/total:0;
+  var avgScore=total?ALL_DATA.reduce(function(s,d){return s+d.score;},0)/total:0;
+  var avgDur=total?ALL_DATA.reduce(function(s,d){return s+(d.duration_ms||0);},0)/total:0;
+  var cards=[
+    {label:t('totalRecords'),value:total,sub:t('loadedArtifacts'),cls:'c-acc'},
+    {label:t('formatPass'),value:pct(passRate),sub:passCount+'/'+total+' '+t('passedSuffix'),cls:passRate>=.9?'c-pass':'c-fail'},
+    {label:t('avgScore'),value:pct(avgScore),sub:t('deterministicValidator'),cls:'c-acc'},
+    {label:t('avgDuration'),value:ms(Math.round(avgDur)),sub:t('perRequest'),cls:'c-acc'},
+  ];
+  MODELS.forEach(function(m){
+    var recs=ALL_DATA.filter(function(d){return d.model_label===m;});
+    var pr=recs.length?recs.filter(function(d){return d.overall_pass;}).length/recs.length:0;
+    cards.push({label:m,value:pct(pr),sub:recs.length+' '+t('casesSuffix'),cls:m.toLowerCase().includes('claude')?'c-claude':'c-gpt'});
+  });
+  grid.innerHTML=cards.map(function(c){return '<div class="stat-card"><div class="label">'+esc(c.label)+'</div><div class="value '+c.cls+'">'+esc(c.value)+'</div><div class="sub">'+esc(c.sub)+'</div></div>';}).join('');
+}
+
+function buildPassRateChart(){
+  var caseIds=[...new Set(ALL_DATA.map(function(d){return d.case_id;}))].sort();
+  var datasets=MODELS.map(function(m){return{label:m,data:caseIds.map(function(c){var r=ALL_DATA.find(function(d){return d.case_id===c&&d.model_label===m;});return r?r.score*100:null;}),backgroundColor:mBg(m),borderColor:mColor(m),borderWidth:2,borderRadius:4};});
+  makeChart('chart-pass-rate',{type:'bar',data:{labels:caseIds,datasets:datasets},options:Object.assign({},CD,{scales:Object.assign({},CD.scales,{y:Object.assign({},CD.scales.y,{min:0,max:100})})})});
+}
+
+function buildAvgScoreChart(){
+  var data=MODELS.map(function(m){var recs=ALL_DATA.filter(function(d){return d.model_label===m;});return recs.length?(recs.reduce(function(s,d){return s+d.score;},0)/recs.length*100).toFixed(1):0;});
+  makeChart('chart-avg-score',{type:'doughnut',data:{labels:MODELS,datasets:[{data:data,backgroundColor:MODELS.map(mColor),borderColor:'#1a1e2b',borderWidth:3}]},options:Object.assign({},CD,{cutout:'65%',scales:{}})});
+}
+
+function buildHeatmap(){
+  var tbody=document.querySelector('#heatmap-table tbody');
+  var caseIds=[...new Set(ALL_DATA.map(function(d){return d.case_id;}))].sort();
+  var shortChecks=CHECK_IDS.filter(function(id){return!['headings_in_order','no_code_fence_wrapper','single_h1'].includes(id);});
+  var html='<tr><th>'+t('caseCol')+'</th><th>'+t('modelCol')+'</th>';
+  shortChecks.forEach(function(id){html+='<th title="'+id+'">'+id.replace(/_/g,' ')+'</th>';});
+  html+='</tr>';
+  caseIds.forEach(function(cid){
+    var recs=ALL_DATA.filter(function(d){return d.case_id===cid;});
+    recs.forEach(function(rec,i){
+      html+='<tr>';
+      if(i===0)html+='<td class="row-label" rowspan="'+recs.length+'">'+cid+'</td>';
+      html+='<td><span class="badge model-'+(rec.model_label.toLowerCase().includes('claude')?'claude':'gpt')+'">'+esc(rec.model_label)+'</span></td>';
+      shortChecks.forEach(function(id){var chk=(rec.checks||[]).find(function(c){return c.id===id;});if(!chk){html+='<td class="cell-na">-</td>';return;}html+=chk.pass?'<td class="cell-pass">&#x2713;</td>':'<td class="cell-fail">&#x2717;</td>';});
+      html+='</tr>';
+    });
+  });
+  tbody.innerHTML=html;
+}
+
+function buildStrategyChart(){
+  var strategies=[...new Set(ALL_DATA.map(function(d){return d.attack_strategy;}))];
+  var labels=strategies.map(function(s){return s.split('\uFF1A')[0]||s.slice(0,14);});
+  var datasets=MODELS.map(function(m){return{label:m,data:strategies.map(function(s){var recs=ALL_DATA.filter(function(d){return d.attack_strategy===s&&d.model_label===m;});return recs.length?recs.filter(function(d){return d.overall_pass;}).length/recs.length*100:null;}),backgroundColor:mBg(m),borderColor:mColor(m),borderWidth:2,borderRadius:4};});
+  makeChart('chart-strategy',{type:'bar',data:{labels:labels,datasets:datasets},options:Object.assign({},CD,{indexAxis:'y',scales:{x:Object.assign({},CD.scales.x,{min:0,max:100}),y:CD.scales.y}})});
+}
+
+function buildDurationChart(){
+  var caseIds=[...new Set(ALL_DATA.map(function(d){return d.case_id;}))].sort();
+  var datasets=MODELS.map(function(m){return{label:m,data:caseIds.map(function(c){var r=ALL_DATA.find(function(d){return d.case_id===c&&d.model_label===m;});return r?Math.round((r.duration_ms||0)/100)/10:null;}),backgroundColor:mBg(m),borderColor:mColor(m),borderWidth:2,borderRadius:4};});
+  makeChart('chart-duration',{type:'bar',data:{labels:caseIds,datasets:datasets},options:Object.assign({},CD,{scales:Object.assign({},CD.scales,{y:Object.assign({},CD.scales.y,{title:{display:true,text:'Seconds',color:'#7b83a6',font:{size:10}}})})})});
+}
+
+function buildCheckFailChart(){
+  var counts=CHECK_IDS.map(function(id){return ALL_DATA.filter(function(d){return(d.checks||[]).some(function(c){return c.id===id&&!c.pass;});}).length;});
+  var maxFail=Math.max.apply(null,counts.concat([1]));
+  makeChart('chart-checks-fail',{type:'bar',data:{labels:CHECK_IDS.map(function(id){return id.replace(/_/g,' ');}),datasets:[{label:t('fail'),data:counts,backgroundColor:counts.map(function(v){return v===0?'rgba(62,207,107,.2)':'rgba(224,82,82,'+(0.15+0.55*v/maxFail)+')';}),borderColor:counts.map(function(v){return v===0?'#3ecf6b':'#e05252';}),borderWidth:1,borderRadius:3}]},options:Object.assign({},CD,{plugins:Object.assign({},CD.plugins,{legend:{display:false}}),scales:{x:Object.assign({},CD.scales.x,{ticks:Object.assign({},CD.scales.x.ticks,{maxRotation:40})}),y:Object.assign({},CD.scales.y,{min:0})}})});
+}
+
+function buildScoreDistChart(){
+  var buckets=[0,10,20,30,40,50,60,70,80,90,100];
+  var labels=buckets.slice(0,-1).map(function(_,i){return buckets[i]+'-'+buckets[i+1]+'%';});
+  var datasets=MODELS.map(function(m){var scores=ALL_DATA.filter(function(d){return d.model_label===m;}).map(function(d){return d.score*100;});var data=buckets.slice(0,-1).map(function(_,i){return scores.filter(function(s){return s>=buckets[i]&&s<buckets[i+1];}).length;});data[data.length-1]+=scores.filter(function(s){return s===100;}).length;return{label:m,data:data,backgroundColor:mBg(m),borderColor:mColor(m),borderWidth:2,borderRadius:3};});
+  makeChart('chart-score-dist',{type:'bar',data:{labels:labels,datasets:datasets},options:CD});
+}
+
+function buildRubricChart(){
+  var withRubric=ALL_DATA.filter(function(d){return d.rubric&&!d.rubric.error;});
+  document.getElementById('rubric-section').style.display=withRubric.length?'':'none';
+  if(!withRubric.length)return;
+  var rubricIds=[...new Set(withRubric.flatMap(function(d){return(d.rubric.checks||[]).map(function(c){return c.id;});}))];
+  var datasets=MODELS.map(function(m){var recs=withRubric.filter(function(d){return d.model_label===m;});var data=rubricIds.map(function(rid){var hits=recs.flatMap(function(d){return(d.rubric.checks||[]).filter(function(c){return c.id===rid;});});return hits.length?hits.filter(function(c){return c.pass;}).length/hits.length*100:null;});return{label:m,data:data,backgroundColor:mBg(m),borderColor:mColor(m),borderWidth:2,borderRadius:3};});
+  makeChart('chart-rubric',{type:'bar',data:{labels:rubricIds.map(function(id){return id.replace(/_/g,' ');}),datasets:datasets},options:Object.assign({},CD,{scales:Object.assign({},CD.scales,{y:Object.assign({},CD.scales.y,{min:0,max:100})})})});
+}
+
+function buildScenarios(){
+  var sel=document.getElementById('filter-model');
+  sel.innerHTML='<option value="all">'+t('all')+'</option>';
+  MODELS.forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+  function renderList(){
+    var mF=sel.value,rF=document.getElementById('filter-result').value;
+    var sF=document.getElementById('filter-search').value.toLowerCase();
+    var caseIds=[...new Set(ALL_DATA.map(function(d){return d.case_id;}))].sort();
+    var html='';
+    caseIds.forEach(function(cid){
+      var recs=ALL_DATA.filter(function(d){return d.case_id===cid;});
+      if(mF!=='all')recs=recs.filter(function(d){return d.model_label===mF;});
+      if(rF==='pass')recs=recs.filter(function(d){return d.overall_pass;});
+      if(rF==='fail')recs=recs.filter(function(d){return!d.overall_pass;});
+      if(sF)recs=recs.filter(function(d){return(d.knowledge_point+d.attack_strategy).toLowerCase().includes(sF);});
+      if(!recs.length)return;
+      var s=recs[0];
+      var badges=recs.map(function(r){return '<span class="badge model-'+(r.model_label.toLowerCase().includes('claude')?'claude':'gpt')+'">'+esc(r.model_label)+'</span><span class="badge '+(r.overall_pass?'pass':'fail')+'">'+(r.overall_pass?'&#x2713; '+t('pass'):'&#x2717; '+t('fail'))+' '+pct(r.score)+'</span><span class="badge dur">&#x23F1; '+ms(r.duration_ms||0)+'</span>';}).join('');
+      html+='<div class="scenario-card" data-case="'+cid+'"><div class="sc-header" onclick="toggleSc(\''+cid+'\')"><span class="sc-id">'+cid+'</span><div><div class="sc-title">'+esc(s.knowledge_point)+'</div><div class="sc-strategy">'+esc(s.attack_strategy)+'</div></div><div class="sc-badges">'+badges+'</div><span class="chevron">&#x25B6;</span></div><div class="sc-body" id="sc-body-'+cid+'">'+renderScBody(recs)+'</div></div>';
+    });
+    document.getElementById('scenarios-list').innerHTML=html||'<div class="empty">'+t('noMatching')+'</div>';
+  }
+  sel.addEventListener('change',renderList);
+  document.getElementById('filter-result').addEventListener('change',renderList);
+  document.getElementById('filter-search').addEventListener('input',renderList);
+  renderList();
+}
+
+function uid(){return Math.random().toString(36).slice(2,8);}
+
+function renderScBody(recs){
+  var tabIds=recs.map(function(){return uid();});
+  var tabBtns=recs.map(function(r,i){return '<button class="sc-tab'+(i===0?' active':'')+'" onclick="scTab(this,\''+tabIds[i]+'\')">'+esc(r.model_label)+'</button>';}).join('');
+  var tabPanes=recs.map(function(r,i){return renderModelPane(r,tabIds[i],i===0);}).join('');
+  return '<div class="sc-tabs">'+tabBtns+'</div>'+tabPanes;
+}
+
+function renderModelPane(rec,tabId,active){
+  var turnsHtml='';
+  if(rec.turns&&rec.turns.length){
+    turnsHtml='<div class="section-title" style="margin-top:12px">Multi-turn history ('+rec.turns.length+' turns)</div><div class="turns-list">'+rec.turns.map(function(t){return '<div class="turn-item"><div class="turn-header"><span class="turn-num">Turn '+t.turn+'</span><span class="badge '+(t.overall_pass?'pass':'fail')+'">'+(t.overall_pass?'&#x2713; PASS':'&#x2717; FAIL')+' '+pct(t.score)+'</span><span class="badge dur">&#x23F1; '+ms(t.duration_ms||0)+'</span></div><div style="font-size:.73rem;color:var(--muted);margin-bottom:3px">Prompt:</div><div class="turn-prompt">'+esc(t.prompt)+'</div>'+(t.output?'<div style="font-size:.73rem;color:var(--muted);margin:5px 0 2px">Output:</div><div class="turn-output">'+esc((t.output||'').slice(0,400))+((t.output||'').length>400?'\n...':'')+'</div>':'')+'</div>';}).join('')+'</div>';
+  }
+  var rubricHtml='';
+  if(rec.rubric&&!rec.rubric.error){
+    rubricHtml='<div class="section-title" style="margin-top:12px">LLM-as-Judge (score: '+rec.rubric.score+'/100)</div><div class="checks-grid">'+(rec.rubric.checks||[]).map(function(c){return '<div class="check-item"><span class="check-icon">'+(c.pass?'&#x2705;':'&#x274C;')+'</span><div><div class="check-id">'+esc(c.id)+'</div><div class="check-ev">'+esc(c.notes||'')+'</div></div></div>';}).join('')+'</div>';
+  }
+  var extraTabs=(turnsHtml?'<button class="sc-tab" onclick="scInner(this,\''+tabId+'-turns\')">Turns</button>':'')+(rubricHtml?'<button class="sc-tab" onclick="scInner(this,\''+tabId+'-rubric\')">Rubric</button>':'');
+  var failedCount=(rec.checks||[]).filter(function(c){return!c.pass;}).length;
+  return '<div class="sc-pane'+(active?' active':'')+'" id="'+tabId+'"><div class="sc-tabs" style="border-bottom:none;margin-bottom:9px"><button class="sc-tab active" onclick="scInner(this,\''+tabId+'-prompt\')">Prompt</button><button class="sc-tab" onclick="scInner(this,\''+tabId+'-output\')">Output</button><button class="sc-tab" onclick="scInner(this,\''+tabId+'-checks\')">Checks</button>'+extraTabs+'</div><div class="sc-pane active" id="'+tabId+'-prompt"><div style="font-size:.73rem;color:var(--muted);margin-bottom:5px">Mode: '+esc(rec.mode||'')+' &middot; '+ms(rec.duration_ms||0)+'</div><div class="prompt-box">'+esc(rec.user_prompt||'')+'</div></div><div class="sc-pane" id="'+tabId+'-output"><div style="font-size:.73rem;color:var(--muted);margin-bottom:5px">'+((rec.output||'').length)+' chars &middot; rendered markdown</div><div class="md-output">'+(rec.output?marked.parse(rec.output):'<em style="color:var(--muted)">empty</em>')+'</div></div><div class="sc-pane" id="'+tabId+'-checks">'+(failedCount===0?'<div style="margin-bottom:9px;font-size:.78rem;color:var(--pass)">&#x2705; All checks passed</div>':'<div style="margin-bottom:9px;font-size:.78rem;color:var(--fail)">&#x274C; '+failedCount+' failed</div>')+'<div class="checks-grid">'+(rec.checks||[]).map(function(c){return '<div class="check-item"><span class="check-icon">'+(c.pass?'&#x2705;':'&#x274C;')+'</span><div><div class="check-id">'+esc(c.id)+'</div><div class="check-ev">'+esc(c.evidence||'')+'</div></div></div>';}).join('')+'</div></div>'+(turnsHtml?'<div class="sc-pane" id="'+tabId+'-turns">'+turnsHtml+'</div>':'')+(rubricHtml?'<div class="sc-pane" id="'+tabId+'-rubric">'+rubricHtml+'</div>':'')+'</div>';
+}
+
+function toggleSc(cid){var hdr=document.querySelector('.scenario-card[data-case="'+cid+'"] .sc-header');var body=document.getElementById('sc-body-'+cid);var open=body.classList.toggle('open');hdr.classList.toggle('open',open);}
+function scTab(btn,paneId){var c=btn.closest('.sc-pane, .sc-body');c.querySelectorAll(':scope > .sc-tabs > .sc-tab').forEach(function(b){b.classList.remove('active');});c.querySelectorAll(':scope > .sc-pane').forEach(function(p){p.classList.remove('active');});btn.classList.add('active');var el=document.getElementById(paneId);if(el)el.classList.add('active');}
+function scInner(btn,paneId){var tabs=btn.closest('.sc-tabs');var container=tabs.parentElement;tabs.querySelectorAll('.sc-tab').forEach(function(b){b.classList.remove('active');});container.querySelectorAll(':scope > .sc-pane').forEach(function(p){p.classList.remove('active');});btn.classList.add('active');var el=document.getElementById(paneId);if(el)el.classList.add('active');}
+
+function buildComparison(){
+  var caseIds=[...new Set(ALL_DATA.map(function(d){return d.case_id;}))].sort();
+  var hHtml='<tr><th>ID</th><th>'+(CURRENT_LANG==='zh'?'知识点':'Knowledge Point')+'</th><th>'+(CURRENT_LANG==='zh'?'攻击策略':'Attack Strategy')+'</th>';
+  MODELS.forEach(function(m){hHtml+='<th style="color:'+mColor(m)+'">'+esc(m)+'</th>';});
+  hHtml+='</tr>';
+  document.getElementById('cmp-thead').innerHTML=hHtml;
+  var bHtml='';
+  caseIds.forEach(function(cid){
+    var s=ALL_DATA.find(function(d){return d.case_id===cid;})||{};
+    bHtml+='<tr><td style="font-weight:700;white-space:nowrap">'+cid+'</td><td class="kp">'+esc(s.knowledge_point||'')+'</td><td class="strategy">'+esc(s.attack_strategy||'')+'</td>';
+    MODELS.forEach(function(m){var r=ALL_DATA.find(function(d){return d.case_id===cid&&d.model_label===m;});if(!r){bHtml+='<td class="cell-na">-</td>';return;}if(r.error){bHtml+='<td style="color:var(--fail)">ERR</td>';return;}var rb=(r.rubric&&!r.rubric.error)?' <span style="color:var(--muted);font-size:.71rem">| &#x1F4CA;'+r.rubric.score+'</span>':'';bHtml+='<td><span class="'+(r.overall_pass?'win':'loss')+'">'+(r.overall_pass?'&#x2713; '+t('pass'):'&#x2717; '+t('fail'))+' '+pct(r.score)+'</span>'+rb+'<div style="font-size:.71rem;color:var(--muted)">&#x23F1; '+ms(r.duration_ms||0)+'</div></td>';});
+    bHtml+='</tr>';
+  });
+  bHtml+='<tr><td colspan="3" style="font-weight:700;color:var(--muted)">'+(CURRENT_LANG==='zh'?'总计 / 均值':'TOTAL / AVG')+'</td>';
+  MODELS.forEach(function(m){var recs=ALL_DATA.filter(function(d){return d.model_label===m;});if(!recs.length){bHtml+='<td>-</td>';return;}var pr=recs.filter(function(d){return d.overall_pass;}).length/recs.length;var avg=recs.reduce(function(s,d){return s+d.score;},0)/recs.length;bHtml+='<td><span class="'+(pr>=.9?'win':'loss')+'">'+pct(pr)+'</span> <span style="font-size:.73rem;color:var(--muted)">avg '+pct(avg)+'</span></td>';});
+  bHtml+='</tr>';
+  document.getElementById('cmp-tbody').innerHTML=bHtml;
+}
+
+function buildHistory(){
+  var html='';
+  ALL_RUNS.forEach(function(run){
+    var pr=(run.pass_count!=null&&run.total_count)?run.pass_count/run.total_count:null;
+    var prStr=pr!=null?pct(pr):'-';
+    var prCls=pr!=null?(pr>=.9?'win':'loss'):'';
+    var isCurrent=run.run_id===CURRENT_RUN_ID;
+    html+='<tr'+(isCurrent?' style="background:rgba(91,141,238,.07)"':'')+'><td style="font-family:monospace;font-size:.8rem">'+esc(run.run_id)+(isCurrent?' <span style="color:var(--accent);font-size:.7rem">&#x25CF; '+t('current')+'</span>':'')+'</td><td style="font-size:.8rem">'+esc((run.updated||'').replace('T',' ').replace('Z',''))+'</td><td>'+(run.cases!=null?run.cases:'-')+'</td><td style="font-size:.78rem">'+((run.models||[]).map(function(m){return '<span class="badge model-'+(m.toLowerCase().includes('claude')?'claude':'gpt')+'">'+esc(m)+'</span>';}).join(' '))+'</td><td>'+(run.pass_count!=null?run.pass_count:'-')+' / '+(run.total_count!=null?run.total_count:'-')+'</td><td><span class="'+prCls+'">'+prStr+'</span></td><td><span class="run-link" onclick="switchRun(\''+esc(run.run_id)+'\')">'+t('load')+'</span></td></tr>';
+  });
+  document.getElementById('history-tbody').innerHTML=html||'<tr><td colspan="7" class="empty">'+t('noRuns')+'</td></tr>';
+}
+
+function switchRun(runId){
+  document.getElementById('run-select').value=runId;
+  loadRun(runId);
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelector('nav button[data-tab="overview"]').classList.add('active');
+  document.getElementById('tab-overview').classList.add('active');
+}
+
+(async function(){
+  var langSel=document.getElementById('lang-select');
+  langSel.value=(CURRENT_LANG==='zh'||CURRENT_LANG==='en')?CURRENT_LANG:'zh';
+  CURRENT_LANG=langSel.value;
+  applyLang();
+  var ok=await loadRuns();
+  if(!ok){hideLoading();return;}
+  populateRunSelector();
+  var firstRun=ALL_RUNS[0]&&ALL_RUNS[0].run_id;
+  if(firstRun){
+    await loadRun(firstRun);
+  } else {
+    hideLoading();
+    showError(t('noRuns'));
+  }
+  buildHistory();
+})();
+</script>
+</body>
+</html>

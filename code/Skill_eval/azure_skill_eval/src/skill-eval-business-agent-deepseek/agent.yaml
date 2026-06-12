@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/microsoft/AgentSchema/refs/heads/main/schemas/v1.0/ContainerAgent.yaml
+
+kind: hosted
+name: skill-eval-business-agent-deepseek
+description: |
+    Foundry Hosted Agent for skill-eval business SUT using DeepSeek-V4-Pro and the edu-video-script Foundry Skill.
+metadata:
+    tags:
+        - Agent Framework
+        - Skill Evaluation
+        - Responses Protocol
+        - Foundry Skills
+protocols:
+    - protocol: responses
+      version: 1.0.0
+resources:
+    cpu: "0.5"
+    memory: 1Gi
+environment_variables:
+    - name: AZURE_AI_MODEL_DEPLOYMENT_NAME
+      value: DeepSeek-V4-Pro

@@ -1,0 +1,17 @@
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.git/
+.azure/
+artifacts/
+html/
+img/
+*.log
+.env
+.env.*
+.DS_Store
+README*.md
+infra/
+evals/

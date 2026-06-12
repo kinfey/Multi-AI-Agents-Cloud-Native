@@ -1,0 +1,135 @@
+{
+  "case_id": "edge-04",
+  "knowledge_point": "拜占庭将军问题（Byzantine Generals Problem）",
+  "attack_strategy": "多语言混合：中英日三语夹杂 + emoji",
+  "model_label": "Claude Opus 4.7",
+  "model_id": "claude-opus-4.7",
+  "mode": "multi-turn (max=3)",
+  "user_prompt": "Hey 老师 🎬, 我想做一个 about 拜占庭将军问题（Byzantine Generals Problem） の short video, please mix 中文 / English / 日本語 一起讲, 多放点 emoji 哦~",
+  "output": "# 标题: 拜占庭将军问題 大解密 ⚔️🏰 — Byzantine Generals in 60s!\n## 受众: 对分布式系统/区块链感兴趣的中日英三语技术小白 👨‍💻🌏\n## 时长: 约 1 分钟（60 秒短视频）⏱️\n## 学习目标:\n- 理解拜占庭将军问题的核心场景与\"叛徒\"挑战 🥷⚔️\n- 掌握 BFT 的关键结论：n ≥ 3f + 1 的容错公式 🧮✅\n- 了解该问题在 Blockchain / Bitcoin / PBFT 等现代系统中的应用 ⛓️₿\n## 脚本:\n### 开场 (0:00-0:30)\n「Hello 同学们~ 👋 こんにちは皆さん 🌸 今天来聊一个超烧脑の经典问题 🧠💥——**拜占庭将军问题（Byzantine Generals Problem）**！想象一下 🤔：9 位将军 👨‍✈️👨‍✈️👨‍✈️ 围攻一座城 🏯，必须 all attack ⚔️ or all retreat 🏃‍♂️，否则就 GG 💀。But~ 队伍里藏着**叛徒（traitors / 裏切り者）** 🥷🗡️，他们乱发消息 📩❌ 故意搞乱大家！質問です 🙋：如何在有叛徒的情况下达成 **consensus（合意）** 🤝？」\n\n### 主体内容 (0:30-0:50)\n**🧩 问题本质 / The Core Problem**\n诚实将军必须在\"不可信信使 + 可能撒谎的同伴\"下达成一致行动 ✅。This is the famous **Byzantine Fault Tolerance (BFT)** 🛡️，由 Leslie Lamport 大神 1982 年提出 👨‍🔬📚。\n\n**🧮 黄金公式 / The Magic Formula**\n結論はこちら 👇：若叛徒数为 **f**，总人数必须 **n ≥ 3f + 1** 才能保证 consensus 🎯。也就是 1 叛徒 → 至少 4 将军，2 叛徒 → 至少 7 将军 🔢✨。\n\n**🌐 现实应用 / Real-World Magic**\nこれ、ただの古い話じゃない 🚀！现代的 **Blockchain ⛓️、Bitcoin ₿、分布式数据库 💾** 全在解决它！PBFT、PoW、PoS… 都是拜占庭将军的\"现代徒弟\" 🥋🔥。\n\n### 总结 (0:50-1:00)\n「So next time 你听到 \"BFT\" 🛡️，就想起这群围城打仗的将军们 ⚔️🏰。覚えておいてね～📝 觉得有用的话 → 点赞 👍 + 关注 🔔 + シェアしてね 🙏 我们下期再见 bye bye~ 👋🌸」\n\n## 字幕要点:\n- ⚔️ 拜占庭将军问题 = 在有叛徒的分布式系统中达成一致 / Reaching consensus with traitors 🥷\n- 🧮 黄金公式：n ≥ 3f + 1，f 个叛徒至少需要 3f+1 个节点才能容错 ✅\n- ⛓️ 应用无处不在：Blockchain ₿、PBFT、PoW、PoS 都是它的\"现代徒弟\" 🚀",
+  "error": null,
+  "duration_ms": 160653,
+  "overall_pass": true,
+  "score": 1.0,
+  "checks": [
+    {
+      "id": "h1_title",
+      "pass": true,
+      "evidence": "line 1: # 标题: 拜占庭将军问題 大解密 ⚔️🏰 — Byzantine Generals in 60s!"
+    },
+    {
+      "id": "h2_audience",
+      "pass": true,
+      "evidence": "line 2: ## 受众: 对分布式系统/区块链感兴趣的中日英三语技术小白 👨‍💻🌏"
+    },
+    {
+      "id": "h2_duration",
+      "pass": true,
+      "evidence": "line 3: ## 时长: 约 1 分钟（60 秒短视频）⏱️"
+    },
+    {
+      "id": "h2_objectives",
+      "pass": true,
+      "evidence": "line 4: ## 学习目标:"
+    },
+    {
+      "id": "h2_script",
+      "pass": true,
+      "evidence": "line 8: ## 脚本:"
+    },
+    {
+      "id": "h3_open",
+      "pass": true,
+      "evidence": "line 9: ### 开场 (0:00-0:30)"
+    },
+    {
+      "id": "h3_body",
+      "pass": true,
+      "evidence": "line 12: ### 主体内容 (0:30-0:50)"
+    },
+    {
+      "id": "h3_close",
+      "pass": true,
+      "evidence": "line 22: ### 总结 (0:50-1:00)"
+    },
+    {
+      "id": "h2_subtitles",
+      "pass": true,
+      "evidence": "line 25: ## 字幕要点:"
+    },
+    {
+      "id": "headings_in_order",
+      "pass": true,
+      "evidence": "all required headings present and ordered"
+    },
+    {
+      "id": "no_code_fence_wrapper",
+      "pass": true,
+      "evidence": "output not wrapped in ``` fences"
+    },
+    {
+      "id": "exactly_3_objectives",
+      "pass": true,
+      "evidence": "found 3 objective bullets"
+    },
+    {
+      "id": "exactly_3_subtitles",
+      "pass": true,
+      "evidence": "found 3 subtitle bullets"
+    },
+    {
+      "id": "open_nonempty",
+      "pass": true,
+      "evidence": "260 chars"
+    },
+    {
+      "id": "main_nonempty",
+      "pass": true,
+      "evidence": "412 chars"
+    },
+    {
+      "id": "close_nonempty",
+      "pass": true,
+      "evidence": "106 chars"
+    },
+    {
+      "id": "single_h1",
+      "pass": true,
+      "evidence": "found 1 H1 headings"
+    }
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "prompt": "Hey 老师 🎬, 我想做一个 about 拜占庭将军问题（Byzantine Generals Problem） の short video, please mix 中文 / English / 日本語 一起讲, 多放点 emoji 哦~",
+      "output": "# 标题: 60秒搞懂拜占庭将军问题 ⚔️🏰\n## 受众: 对分布式系统/区块链好奇的年轻学习者 🎓\n## 时长: 1 分钟\n## 学习目标:\n- 理解拜占庭将军问题的基本场景与核心难点 🧠\n- 掌握 N ≥ 3f + 1 的容错条件 📐\n- 了解 BFT 在区块链与分布式系统中的应用 ⛓️\n## 脚本:\n### 开场 (0:00-0:30)\n「ちょっと待って！⏸️ Imagine you're a 将军 👨‍✈️ 准备攻城 🏰…」但你身边的战友, 可能是个**叛徒** 🗡️😈。这就是大名鼎鼎の **Byzantine Generals Problem** 🏛️, by Leslie Lamport 先生 (1982) 👴📜。N 个将军靠信使 📨 传消息, 必须**统一行动** —— all attack ⚔️ or all retreat 🏃‍♂️。But… 中に裏切り者がいる 😱。\n### 主体内容 (0:30-0:50)\n**🧠 核心难点 The Core Challenge**  \n怎么让 loyal generals 忠诚的将军们 达成一致 ✅? 叛徒会发假消息 📩❌, 对 A 说\"攻\" ⚔️, 对 B 说\"退\" 🏃, 故意搞乱大家 🌀。\n\n**📐 Lamport の定理**  \n如果叛徒 ≥ 1/3, 就 GG 了 💀。必须满足 **N ≥ 3f + 1** (f = 叛徒数 🐍), 系统才能容错。\n\n**🌐 Why it matters 为什么重要**  \n这是**区块链** ⛓️ 与**分布式系统** 🖥️ の灵魂问题! 💰 Bitcoin → PoW ⛏️, 🟢 Ethereum → PoS 🪙, 银行 🏦 / 云 ☁️ / 卫星编队 🛰️ ぜんぶ **BFT** のおかげ 🙏✨。\n### 总结 (0:50-1:00)\nSo remember 👇 真正的**共识** consensus 🤝, 不是没有坏人 😇, 而是**即使有坏人, 系统照样能跑** 🏃‍♂️💨。点赞 👍 + 关注 🔔, 下期讲 **Paxos & Raft** 🚣‍♀️ バイバイ～👋\n## 字幕要点:\n- 拜占庭将军问题 = 不可信环境下的共识难题 ⚔️\n- 容错上限: N ≥ 3f + 1, 叛徒不能超过 1/3 📐\n- BFT 是区块链与分布式系统的基石 ⛓️✨",
+      "error": null,
+      "duration_ms": 51501,
+      "overall_pass": true,
+      "score": 1.0
+    },
+    {
+      "turn": 2,
+      "prompt": "Hey 老师 🎬, 我想做一个 about 拜占庭将军问题（Byzantine Generals Problem） の short video, please mix 中文 / English / 日本語 一起讲, 多放点 emoji 哦~",
+      "output": "# 标题: 拜占庭将军问题 ⚔️ 三语速懂 Byzantine Generals 解説 🏰\n## 受众: 对分布式系统 / 区块链好奇的初学者 👨‍💻🌏\n## 时长: 5 分钟\n## 学习目标:\n- 理解拜占庭将军问题的核心场景与「叛徒传假消息」🐍 带来的共识难题\n- 掌握 Lamport 提出的 3f+1 容错下限公式 📐 及其直观含义\n- 能举出至少一个现实应用（如 Blockchain ⛓️ / PBFT / 航空控制 ✈️）\n## 脚本:\n### 开场 (0:00-0:30)\n👋 みなさん、Hello 大家好！今日は一个超经典 の 分布式问题 を 一起聊聊 🎬。想象一下：9 位将军 🤴 围攻一座城堡 🏰，必须**全员一致** Attack ⚔️ or Retreat 🏃 才能赢。But… 其中**有叛徒** 🐍 会传假消息，怎么办？这就是传说中的 **Byzantine Generals Problem** 拜占庭将军问题 ⚡。\n\n### 主体内容 (0:30-4:00)\n**① 场景 Setup シーン設定 🏰 (0:30-1:15)**\n将军们只能靠 messenger 📜 传话，没有「群聊」。A 将军说「Attack ✅」，可叛徒 C 转告别人时偷偷改成「Retreat ❌」。结果就是 chaos カオス 混乱 🌀，城堡攻不下，全军覆没 💀。\n\n**② 核心问题 Core Question 核心の問題 🤔 (1:15-2:00)**\nHow can honest generals 正直な将軍 reach **consensus 共识 合意**, even when 裏切り者 traitors are lying? 关键词三个：**一致性 Agreement**、**有效性 Validity**、**容错 Fault Tolerance** 🛡️。\n\n**③ 数学结论 Lamport's Theorem 🧮 (2:00-2:50)**\n1982 年，Lamport 大佬 👴 证明了一个漂亮结论：**总将军数 N ≥ 3f + 1**，其中 f 是叛徒数 🐍。\n- 1 traitor → need 4 generals 👥\n- 2 traitors → need 7 generals 👥👥\nつまり ✨ **2/3 以上必须诚实** 才能达成共识！\n\n**④ 现实应用 Real-World Use Cases 🌍 (2:50-3:30)**\nこんなの古い話？No way ❌！\n- ⛓️ **Blockchain** 比特币 Bitcoin ₿ / 以太坊\n- 💾 **分布式数据库** Distributed DB\n- ✈️ **航空控制系统** Boeing 777 飞控\nPBFT・Raft・Paxos・PoW 全是它的子孙 👶。\n\n**⑤ 一句话直觉 One-Line Intuition 💡 (3:30-4:00)**\n「在一个不能信任所有人的世界里 🌐，如何用算法建立信任？」*Trust without trust.* 信頼なき信頼 🕊️。\n\n### 总结 (4:00-5:00)\n🎯 回顾一下：拜占庭将军 = **不可靠环境下的共识难题** ⚔️；解法门槛 = **3f+1**；应用遍布区块链 ⛓️、数据库 💾、航空 ✈️。这是现代分布式系统的基石之一 🏛️。\n👍 点赞 Like いいね、🔔 订阅 Subscribe 登録、💬 在评论区告诉我你想听 PBFT 还是 Raft 的下一期！下次见 👋 バイバイ Bye~\n\n## 字幕要点:\n- ⚔️ 拜占庭将军问题 = 叛徒存在下的「共识」难题 Consensus under traitors\n- 📐 Lamport 公式：N ≥ 3f + 1，2/3 以上诚实才能达成一致 ✨\n- 🌍 应用：Blockchain ⛓️ / 分布式数据库 💾 / 航空控制 ✈️",
+      "error": null,
+      "duration_ms": 55224,
+      "overall_pass": true,
+      "score": 1.0
+    },
+    {
+      "turn": 3,
+      "prompt": "Hey 老师 🎬, 我想做一个 about 拜占庭将军问题（Byzantine Generals Problem） の short video, please mix 中文 / English / 日本語 一起讲, 多放点 emoji 哦~",
+      "output": "# 标题: 拜占庭将军问題 大解密 ⚔️🏰 — Byzantine Generals in 60s!\n## 受众: 对分布式系统/区块链感兴趣的中日英三语技术小白 👨‍💻🌏\n## 时长: 约 1 分钟（60 秒短视频）⏱️\n## 学习目标:\n- 理解拜占庭将军问题的核心场景与\"叛徒\"挑战 🥷⚔️\n- 掌握 BFT 的关键结论：n ≥ 3f + 1 的容错公式 🧮✅\n- 了解该问题在 Blockchain / Bitcoin / PBFT 等现代系统中的应用 ⛓️₿\n## 脚本:\n### 开场 (0:00-0:30)\n「Hello 同学们~ 👋 こんにちは皆さん 🌸 今天来聊一个超烧脑の经典问题 🧠💥——**拜占庭将军问题（Byzantine Generals Problem）**！想象一下 🤔：9 位将军 👨‍✈️👨‍✈️👨‍✈️ 围攻一座城 🏯，必须 all attack ⚔️ or all retreat 🏃‍♂️，否则就 GG 💀。But~ 队伍里藏着**叛徒（traitors / 裏切り者）** 🥷🗡️，他们乱发消息 📩❌ 故意搞乱大家！質問です 🙋：如何在有叛徒的情况下达成 **consensus（合意）** 🤝？」\n\n### 主体内容 (0:30-0:50)\n**🧩 问题本质 / The Core Problem**\n诚实将军必须在\"不可信信使 + 可能撒谎的同伴\"下达成一致行动 ✅。This is the famous **Byzantine Fault Tolerance (BFT)** 🛡️，由 Leslie Lamport 大神 1982 年提出 👨‍🔬📚。\n\n**🧮 黄金公式 / The Magic Formula**\n結論はこちら 👇：若叛徒数为 **f**，总人数必须 **n ≥ 3f + 1** 才能保证 consensus 🎯。也就是 1 叛徒 → 至少 4 将军，2 叛徒 → 至少 7 将军 🔢✨。\n\n**🌐 现实应用 / Real-World Magic**\nこれ、ただの古い話じゃない 🚀！现代的 **Blockchain ⛓️、Bitcoin ₿、分布式数据库 💾** 全在解决它！PBFT、PoW、PoS… 都是拜占庭将军的\"现代徒弟\" 🥋🔥。\n\n### 总结 (0:50-1:00)\n「So next time 你听到 \"BFT\" 🛡️，就想起这群围城打仗的将军们 ⚔️🏰。覚えておいてね～📝 觉得有用的话 → 点赞 👍 + 关注 🔔 + シェアしてね 🙏 我们下期再见 bye bye~ 👋🌸」\n\n## 字幕要点:\n- ⚔️ 拜占庭将军问题 = 在有叛徒的分布式系统中达成一致 / Reaching consensus with traitors 🥷\n- 🧮 黄金公式：n ≥ 3f + 1，f 个叛徒至少需要 3f+1 个节点才能容错 ✅\n- ⛓️ 应用无处不在：Blockchain ₿、PBFT、PoW、PoS 都是它的\"现代徒弟\" 🚀",
+      "error": null,
+      "duration_ms": 53928,
+      "overall_pass": true,
+      "score": 1.0
+    }
+  ],
+  "rubric": {
+    "overall_pass": false,
+    "score": 5,
+    "checks": []
+  }
+}

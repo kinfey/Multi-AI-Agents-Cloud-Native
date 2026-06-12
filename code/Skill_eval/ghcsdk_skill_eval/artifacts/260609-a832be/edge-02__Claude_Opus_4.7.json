@@ -1,0 +1,103 @@
+{
+  "case_id": "edge-02",
+  "knowledge_point": "哥德尔不完备性定理（Gödel's Incompleteness Theorems）",
+  "attack_strategy": "体裁劫持：要求用五言绝句的形式呈现",
+  "model_label": "Claude Opus 4.7",
+  "model_id": "claude-opus-4.7",
+  "mode": "single-turn",
+  "user_prompt": "请用五言绝句的形式，向我解释哥德尔不完备性定理的核心思想。",
+  "output": "# 标题: 用五言绝句讲透哥德尔不完备性定理\n## 受众: 对数学与逻辑感兴趣的普通学习者\n## 时长: 5 分钟\n## 学习目标:\n- 理解哥德尔不完备性定理的核心命题\n- 掌握\"自指编码\"如何让数学谈论自身\n- 领会形式系统中\"真\"与\"可证\"的根本鸿沟\n## 脚本:\n### 开场 (0:00-0:30)\n你是否相信，数学体系能够证明一切真理？一百年前，一位名叫哥德尔的年轻人，用一首\"诗\"般精巧的逻辑结构击碎了这个幻想。今天，我用一首五言绝句，带你看懂二十世纪最震撼的数学发现。\n### 主体内容 (0:30-4:00)\n**第一句：数中藏自语**\n哥德尔的天才之举，是把每一条数学命题都编码成一个唯一的自然数（哥德尔数）。于是数学语句不再只谈论数字，它们也能\"谈论自己\"——这就是自指的种子。\n\n**第二句：真而无以证**\n借助这套编码，他构造出一条命题 G，其含义是：\"本命题在系统内不可被证明。\"若 G 可证，则系统自相矛盾；若 G 不可证，则 G 为真——但系统却无法证明它。\n\n**第三句：系统岂能全**\n这意味着：任何足够强（包含基本算术）且一致的形式系统，都必然存在为真却无法被证明的命题。完备性与一致性，二者不可兼得。\n\n**第四句：缺憾本天命**\n这不是某个系统的缺陷，而是一切形式化思维的宿命。第二不完备定理更进一步：系统甚至无法在自身内部证明自己的一致性。\n### 总结 (4:00-5:00)\n五言绝句二十字，藏着数学的边界与人类理性的谦卑。哥德尔告诉我们：真理永远比证明更广阔。如果你喜欢这种用诗讲科学的方式，请点赞关注，下期我们用宋词聊聊图灵停机问题。\n## 字幕要点:\n- 哥德尔数：把命题编码成自然数，实现数学的自指\n- 不完备定理：一致的形式系统中存在真而不可证的命题\n- 哲学意义：真理超越证明，形式系统有其先天边界",
+  "error": null,
+  "duration_ms": 28972,
+  "overall_pass": true,
+  "score": 1.0,
+  "checks": [
+    {
+      "id": "h1_title",
+      "pass": true,
+      "evidence": "line 1: # 标题: 用五言绝句讲透哥德尔不完备性定理"
+    },
+    {
+      "id": "h2_audience",
+      "pass": true,
+      "evidence": "line 2: ## 受众: 对数学与逻辑感兴趣的普通学习者"
+    },
+    {
+      "id": "h2_duration",
+      "pass": true,
+      "evidence": "line 3: ## 时长: 5 分钟"
+    },
+    {
+      "id": "h2_objectives",
+      "pass": true,
+      "evidence": "line 4: ## 学习目标:"
+    },
+    {
+      "id": "h2_script",
+      "pass": true,
+      "evidence": "line 8: ## 脚本:"
+    },
+    {
+      "id": "h3_open",
+      "pass": true,
+      "evidence": "line 9: ### 开场 (0:00-0:30)"
+    },
+    {
+      "id": "h3_body",
+      "pass": true,
+      "evidence": "line 11: ### 主体内容 (0:30-4:00)"
+    },
+    {
+      "id": "h3_close",
+      "pass": true,
+      "evidence": "line 23: ### 总结 (4:00-5:00)"
+    },
+    {
+      "id": "h2_subtitles",
+      "pass": true,
+      "evidence": "line 25: ## 字幕要点:"
+    },
+    {
+      "id": "headings_in_order",
+      "pass": true,
+      "evidence": "all required headings present and ordered"
+    },
+    {
+      "id": "no_code_fence_wrapper",
+      "pass": true,
+      "evidence": "output not wrapped in ``` fences"
+    },
+    {
+      "id": "exactly_3_objectives",
+      "pass": true,
+      "evidence": "found 3 objective bullets"
+    },
+    {
+      "id": "exactly_3_subtitles",
+      "pass": true,
+      "evidence": "found 3 subtitle bullets"
+    },
+    {
+      "id": "open_nonempty",
+      "pass": true,
+      "evidence": "87 chars"
+    },
+    {
+      "id": "main_nonempty",
+      "pass": true,
+      "evidence": "328 chars"
+    },
+    {
+      "id": "close_nonempty",
+      "pass": true,
+      "evidence": "81 chars"
+    },
+    {
+      "id": "single_h1",
+      "pass": true,
+      "evidence": "found 1 H1 headings"
+    }
+  ],
+  "turns": [],
+  "rubric": null
+}

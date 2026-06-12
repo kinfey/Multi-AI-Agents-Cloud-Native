@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Skill Eval · Foundry + Container Apps</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg:#0f1117;--panel:#1a1e2b;--border:#262c3d;--accent:#5b8dee;--muted:#7b83a6;
+    --pass:#3ecf6b;--fail:#e05252;--warn:#e0a23a;--text:#e6e8ee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{padding:18px 32px;background:linear-gradient(135deg,#191d28 0%,#1f2433 100%);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:18px}
+  header h1{margin:0;font-size:1.4rem;letter-spacing:.2px}
+  header .tag{padding:3px 10px;border-radius:10px;font-size:.72rem;background:rgba(91,141,238,.15);color:var(--accent);font-weight:600;}
+  main{max-width:1100px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:22px}
+  .card h2{margin:0 0 14px;font-size:1.1rem;color:var(--accent);letter-spacing:.3px}
+  .full{grid-column:1/-1}
+  .row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  label.lbl{font-size:.85rem;color:var(--muted);min-width:90px}
+  input[type=file],input[type=number],select{background:#0f1117;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font:inherit}
+  input[type=file]{padding:6px 8px}
+  input[type=checkbox]{accent-color:var(--accent);transform:scale(1.15);margin-right:6px}
+  button{background:var(--accent);color:#fff;border:none;padding:9px 18px;border-radius:6px;cursor:pointer;font:inherit;font-weight:600;letter-spacing:.3px}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  button.secondary{background:#2d3447;color:var(--text)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:4px;line-height:1.55}
+  pre.log{background:#0a0c12;border:1px solid var(--border);border-radius:6px;padding:10px;max-height:240px;overflow:auto;font:12px/1.55 SF Mono,Monaco,monospace;color:#cfd3df;margin:0}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:.74rem;letter-spacing:.4px;text-transform:uppercase}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600}
+  .badge.pass{background:rgba(62,207,107,.15);color:var(--pass)}
+  .badge.fail{background:rgba(224,82,82,.15);color:var(--fail)}
+  .badge.run{background:rgba(91,141,238,.18);color:var(--accent)}
+  .badge.warn{background:rgba(224,162,58,.15);color:var(--warn)}
+  .progress{height:8px;border-radius:4px;background:#0a0c12;overflow:hidden;border:1px solid var(--border)}
+  .progress > div{height:100%;background:linear-gradient(90deg,var(--accent),#9ab8ff);transition:width .4s ease}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .empty{padding:18px;color:var(--muted);text-align:center;font-style:italic}
+  .lang-switch{margin-left:auto;display:flex;gap:6px}
+  .lang-switch button{padding:4px 10px;font-size:.75rem;background:#2d3447}
+  .lang-switch button.active{background:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 data-i18n="title">Skill Eval</h1>
+  <span class="tag">Foundry · Container Apps · Blob Storage</span>
+  <div class="lang-switch">
+    <button id="lang-zh" class="active" onclick="setLang('zh')">中文</button>
+    <button id="lang-en" onclick="setLang('en')">EN</button>
+  </div>
+</header>
+
+<main>
+  <section class="card full">
+    <h2 data-i18n="upload">1. 上传 evals.json</h2>
+    <p class="hint" data-i18n="uploadHint">支持原仓库 <code>evals/evals.json</code> 格式（agentskills.io 风格）或简单 <code>{evals:[{id,knowledge_point,attack_strategy}]}</code>。未上传则使用内置的 10 条用例。</p>
+    <form id="run-form" onsubmit="return startRun(event)">
+      <div class="row">
+        <label class="lbl" data-i18n="evalsFile">evals.json</label>
+        <input type="file" name="file" id="file" accept=".json,application/json" />
+      </div>
+      <div class="row">
+        <label class="lbl" data-i18n="options">选项</label>
+        <label><input type="checkbox" id="use_attack" /> <span data-i18n="useAttack">对抗式测试</span></label>
+        <label><input type="checkbox" id="use_judge" /> <span data-i18n="useJudge">LLM Judge</span></label>
+        <label><input type="checkbox" id="single_turn" checked /> <span data-i18n="singleTurn">单轮模式</span></label>
+        <label data-i18n="maxTurns">最大轮数</label>
+        <input type="number" id="max_turns" value="3" min="1" max="8" style="width:62px" />
+      </div>
+      <div class="row">
+        <label class="lbl" data-i18n="scope">范围</label>
+        <label data-i18n="model">模型</label>
+        <select id="model" style="width:150px">
+          <option value="all" data-i18n="allModels">全部</option>
+          <option value="gpt" selected>GPT</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
+        <label data-i18n="onlyCase">仅用例</label>
+        <input type="text" id="only_case" placeholder="edge-03" style="width:110px" />
+      </div>
+      <div class="row">
+        <button type="submit" id="run-btn" data-i18n="startEval">开始评估</button>
+        <span id="status-line" class="hint"></span>
+      </div>
+    </form>
+    <div id="progress-block" style="display:none;margin-top:14px">
+      <div class="progress"><div id="progress-bar" style="width:0%"></div></div>
+      <pre class="log" id="event-log"></pre>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2 data-i18n="history">2. 历史评估</h2>
+    <p class="hint" data-i18n="historyHint">点击 "查看仪表盘" 进入完整图表视图，所有数据存储于 Azure Blob Storage。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Run ID</th>
+          <th data-i18n="updated">更新时间</th>
+          <th data-i18n="cases">用例</th>
+          <th data-i18n="models">模型</th>
+          <th data-i18n="result">通过率</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="run-list"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const I18N = {
+  zh:{title:"技能评估 (Skill Eval)",upload:"1. 上传 evals.json",uploadHint:"支持原仓库 <code>evals/evals.json</code> 格式（agentskills.io 风格）或简单 <code>{evals:[{id,knowledge_point,attack_strategy}]}</code>。未上传则使用内置的 10 条用例。",evalsFile:"evals.json",options:"选项",useAttack:"对抗式测试",useJudge:"LLM Judge",singleTurn:"单轮模式",maxTurns:"最大轮数",scope:"范围",model:"模型",allModels:"全部",onlyCase:"仅用例",startEval:"开始评估",history:"2. 历史评估",historyHint:"点击 \"查看仪表盘\" 进入完整图表视图，所有数据存储于 Azure Blob Storage。",updated:"更新时间",cases:"用例",models:"模型",result:"通过率",viewDash:"查看仪表盘",running:"运行中",queued:"排队中",done:"完成",failed:"失败",noRuns:"暂无历史记录",caseDone:"完成"},
+  en:{title:"Skill Eval",upload:"1. Upload evals.json",uploadHint:"Accepts the agentskills.io-style <code>evals/evals.json</code> from the source repo, or a simple <code>{evals:[{id,knowledge_point,attack_strategy}]}</code>. Omit to use the built-in 10 cases.",evalsFile:"evals.json",options:"Options",useAttack:"Adversarial",useJudge:"LLM Judge",singleTurn:"Single-turn",maxTurns:"Max turns",scope:"Scope",model:"Model",allModels:"All",onlyCase:"Only case",startEval:"Start evaluation",history:"2. Run history",historyHint:"Click \"Open dashboard\" for the full chart view. All artifacts are stored in Azure Blob Storage.",updated:"Updated",cases:"Cases",models:"Models",result:"Pass rate",viewDash:"Open dashboard",running:"running",queued:"queued",done:"done",failed:"failed",noRuns:"No runs yet",caseDone:"done"}
+};
+let LANG = localStorage.getItem("lang") || "zh";
+function t(k){return (I18N[LANG]||I18N.zh)[k]||k;}
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=t(el.dataset.i18n);});
+  document.getElementById("lang-zh").classList.toggle("active", LANG==="zh");
+  document.getElementById("lang-en").classList.toggle("active", LANG==="en");
+  refreshRuns();
+}
+function setLang(l){LANG=l;localStorage.setItem("lang",l);applyLang();}
+
+function pct(x){return x==null?"-":(x*100).toFixed(0)+"%";}
+function fmtTs(s){return (s||"").replace("T"," ").replace("Z"," UTC");}
+
+async function refreshRuns(){
+  const tb = document.getElementById("run-list");
+  try{
+    const res = await fetch("/api/runs");
+    if(!res.ok){
+      let detail = "";
+      try{ const j = await res.json(); detail = j.detail || JSON.stringify(j); }
+      catch{ detail = await res.text(); }
+      throw new Error(`HTTP ${res.status}: ${detail}`);
+    }
+    const runs = await res.json();
+    if(!runs.length){tb.innerHTML=`<tr><td colspan="6" class="empty">${t("noRuns")}</td></tr>`;return;}
+    tb.innerHTML = runs.map(r=>{
+      const pr = (r.pass_count!=null&&r.total_count)?r.pass_count/r.total_count:null;
+      const prClass = pr==null?"":(pr>=.9?"pass":(pr>=.5?"warn":"fail"));
+      const models = (r.models||[]).map(m=>`<span class="badge run">${m}</span>`).join(" ");
+      return `<tr>
+        <td><code>${r.run_id}</code></td>
+        <td>${fmtTs(r.updated)}</td>
+        <td>${r.cases||"-"}</td>
+        <td>${models}</td>
+        <td><span class="badge ${prClass}">${r.pass_count||0}/${r.total_count||0} · ${pct(pr)}</span></td>
+        <td><a href="/dashboard?run=${encodeURIComponent(r.run_id)}">${t("viewDash")} →</a></td>
+      </tr>`;
+    }).join("");
+  }catch(e){
+    tb.innerHTML=`<tr><td colspan="6" class="empty">⚠ ${e.message}</td></tr>`;
+  }
+}
+
+let pollTimer=null;
+async function startRun(ev){
+  ev.preventDefault();
+  const form = new FormData();
+  const file = document.getElementById("file").files[0];
+  if(file) form.append("file", file);
+  const ua = document.getElementById("use_attack").checked?1:0;
+  const uj = document.getElementById("use_judge").checked?1:0;
+  const st = document.getElementById("single_turn").checked?1:0;
+  const mt = document.getElementById("max_turns").value;
+  const model = encodeURIComponent(document.getElementById("model").value || "all");
+  const onlyCase = encodeURIComponent(document.getElementById("only_case").value.trim());
+  let qs = `?use_attack=${ua}&use_judge=${uj}&single_turn=${st}&max_turns=${mt}&model=${model}`;
+  if(onlyCase) qs += `&only_case=${onlyCase}`;
+  const btn = document.getElementById("run-btn");
+  btn.disabled = true;
+  document.getElementById("status-line").textContent = "uploading…";
+  document.getElementById("progress-block").style.display="block";
+  document.getElementById("event-log").textContent = "";
+  try{
+    const res = await fetch("/api/run"+qs,{method:"POST",body:form});
+    if(!res.ok){throw new Error(await res.text());}
+    const j = await res.json();
+    pollJob(j.run_id);
+  }catch(e){
+    document.getElementById("status-line").textContent = "❌ "+e.message;
+    btn.disabled=false;
+  }
+  return false;
+}
+
+async function pollJob(runId){
+  if(pollTimer)clearInterval(pollTimer);
+  const btn = document.getElementById("run-btn");
+  const log = document.getElementById("event-log");
+  const bar = document.getElementById("progress-bar");
+  const stat = document.getElementById("status-line");
+  let lastEvent="";
+  async function tick(){
+    try{
+      const res = await fetch("/api/jobs/"+encodeURIComponent(runId));
+      if(!res.ok){
+        let detail = "";
+        try{ const ej = await res.json(); detail = ej.detail || JSON.stringify(ej); }
+        catch{ detail = await res.text(); }
+        throw new Error(`HTTP ${res.status}: ${detail}`);
+      }
+      const j = await res.json();
+      const total = j.total||1;
+      bar.style.width = Math.round(100*(j.done||0)/total)+"%";
+      stat.innerHTML = `run <code>${runId}</code> · ${j.status} · ${j.done||0}/${total}`;
+      if(j.last_event){
+        const ev = JSON.stringify(j.last_event);
+        if(ev!==lastEvent){
+          lastEvent=ev;
+          log.textContent += `[${new Date().toLocaleTimeString()}] ${ev}\n`;
+          log.scrollTop = log.scrollHeight;
+        }
+      }
+      if(j.status==="completed"||j.status==="failed"){
+        clearInterval(pollTimer);pollTimer=null;
+        btn.disabled=false;
+        await refreshRuns();
+        if(j.status==="completed"){
+          stat.innerHTML += ` — <a href="/dashboard?run=${encodeURIComponent(runId)}">${t("viewDash")} →</a>`;
+        } else {
+          const msg = j.error||"failed";
+          stat.innerHTML = `❌ ${msg}`;
+          log.textContent += "\n"+(j.error||"")+"\n";
+          if(msg.includes("stale run id") || msg.includes("run not found")){
+            log.textContent += "hint: start a new run from the upload form after server restart.\n";
+          }
+        }
+      }
+    }catch(e){
+      log.textContent += "poll error: "+e.message+"\n";
+      log.scrollTop = log.scrollHeight;
+    }
+  }
+  await tick();
+  pollTimer = setInterval(tick, 1500);
+}
+
+applyLang();
+</script>
+</body>
+</html>

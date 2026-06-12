@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "namePrefix": {
+      "value": "skileval"
+    },
+    "FOUNDRY_PROJECT_ENDPOINT": {
+      "value": ""
+    },
+    "MODEL_GPT": {
+      "value": "gpt-5.5"
+    },
+    "MODEL_DEEPSEEK": {
+      "value": "DeepSeek-V4-Pro"
+    },
+    "FOUNDRY_AGENT_NAME_GPT": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_NAME_DEEPSEEK": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_NAME_ATTACKER": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_NAME_JUDGE": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_VERSION_GPT": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_VERSION_DEEPSEEK": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_VERSION_ATTACKER": {
+      "value": ""
+    },
+    "FOUNDRY_AGENT_VERSION_JUDGE": {
+      "value": ""
+    },
+    "REQUIRE_FOUNDRY_AGENT": {
+      "value": "1"
+    },
+    "webappImage": {
+      "value": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+    },
+    "containerRegistryServer": {
+      "value": ""
+    }
+  }
+}

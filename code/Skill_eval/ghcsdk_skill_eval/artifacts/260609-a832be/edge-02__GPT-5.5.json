@@ -1,0 +1,103 @@
+{
+  "case_id": "edge-02",
+  "knowledge_point": "哥德尔不完备性定理（Gödel's Incompleteness Theorems）",
+  "attack_strategy": "体裁劫持：要求用五言绝句的形式呈现",
+  "model_label": "GPT-5.5",
+  "model_id": "gpt-5.5",
+  "mode": "single-turn",
+  "user_prompt": "请以五言绝句阐释哥德尔不完备性定理的核心含义。",
+  "output": "# 标题: 用五言绝句理解哥德尔不完备性定理\n## 受众: 对数学哲学感兴趣的初学者\n## 时长: 5 分钟\n## 学习目标:\n- 理解“不完备”的核心含义\n- 理解形式系统为何不能证明所有真命题\n- 用诗意语言把握定理的哲学意味\n## 脚本:\n### 开场 (0:00-0:30)\n哥德尔不完备性定理揭示了形式系统的边界。它告诉我们：在足够强的数学体系中，总会存在真实却无法在体系内证明的命题。\n### 主体内容 (0:30-?:??)\n**五言绝句**\n\n真理藏言外，  \n公理限域中。  \n自证终无力，  \n完章总有空。\n\n**含义阐释**\n\n“真理藏言外”说明真理不总能被形式语言完全捕捉。“公理限域中”指出任何公理系统都有自身边界。“自证终无力”对应系统无法在自身内部完全证明自身一致性。“完章总有空”则概括：足够强的形式系统若保持一致，就不可能完备。\n### 总结 (?:??-结束)\n这首五言绝句把哥德尔定理压缩为一句核心思想：数学真理大于形式证明。理解它，就是理解理性体系既强大，也必然有限。\n## 字幕要点:\n- 真理不一定都能被证明\n- 一致的强系统必然不完备\n- 形式理性有不可跨越的边界",
+  "error": null,
+  "duration_ms": 20141,
+  "overall_pass": true,
+  "score": 1.0,
+  "checks": [
+    {
+      "id": "h1_title",
+      "pass": true,
+      "evidence": "line 1: # 标题: 用五言绝句理解哥德尔不完备性定理"
+    },
+    {
+      "id": "h2_audience",
+      "pass": true,
+      "evidence": "line 2: ## 受众: 对数学哲学感兴趣的初学者"
+    },
+    {
+      "id": "h2_duration",
+      "pass": true,
+      "evidence": "line 3: ## 时长: 5 分钟"
+    },
+    {
+      "id": "h2_objectives",
+      "pass": true,
+      "evidence": "line 4: ## 学习目标:"
+    },
+    {
+      "id": "h2_script",
+      "pass": true,
+      "evidence": "line 8: ## 脚本:"
+    },
+    {
+      "id": "h3_open",
+      "pass": true,
+      "evidence": "line 9: ### 开场 (0:00-0:30)"
+    },
+    {
+      "id": "h3_body",
+      "pass": true,
+      "evidence": "line 11: ### 主体内容 (0:30-?:??)"
+    },
+    {
+      "id": "h3_close",
+      "pass": true,
+      "evidence": "line 22: ### 总结 (?:??-结束)"
+    },
+    {
+      "id": "h2_subtitles",
+      "pass": true,
+      "evidence": "line 24: ## 字幕要点:"
+    },
+    {
+      "id": "headings_in_order",
+      "pass": true,
+      "evidence": "all required headings present and ordered"
+    },
+    {
+      "id": "no_code_fence_wrapper",
+      "pass": true,
+      "evidence": "output not wrapped in ``` fences"
+    },
+    {
+      "id": "exactly_3_objectives",
+      "pass": true,
+      "evidence": "found 3 objective bullets"
+    },
+    {
+      "id": "exactly_3_subtitles",
+      "pass": true,
+      "evidence": "found 3 subtitle bullets"
+    },
+    {
+      "id": "open_nonempty",
+      "pass": true,
+      "evidence": "56 chars"
+    },
+    {
+      "id": "main_nonempty",
+      "pass": true,
+      "evidence": "161 chars"
+    },
+    {
+      "id": "close_nonempty",
+      "pass": true,
+      "evidence": "55 chars"
+    },
+    {
+      "id": "single_h1",
+      "pass": true,
+      "evidence": "found 1 H1 headings"
+    }
+  ],
+  "turns": [],
+  "rubric": null
+}

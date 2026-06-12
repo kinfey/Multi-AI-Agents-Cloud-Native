@@ -1,0 +1,15 @@
+{
+  "run_id": "260609-a19b9b",
+  "files": [
+    "edge-03__Claude_Opus_4.7.json",
+    "edge-03__GPT-5.5.json"
+  ],
+  "updated": "2026-06-09T07:26:05Z",
+  "cases": 1,
+  "models": [
+    "Claude Opus 4.7",
+    "GPT-5.5"
+  ],
+  "pass_count": 2,
+  "total_count": 2
+}

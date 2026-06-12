@@ -1,0 +1,102 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: azure-skill-eval
+metadata:
+    template: azure-skill-eval@0.1.0
+services:
+    skill-eval-attacker-agent:
+        project: src/skill-eval-attacker-agent
+        host: azure.ai.agent
+        language: docker
+        docker:
+            remoteBuild: true
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+            deployments:
+                - model:
+                    format: OpenAI
+                    name: gpt-5.5
+                    version: "2026-04-24"
+                  name: gpt-5.5
+                  sku:
+                    capacity: 5000
+                    name: GlobalStandard
+            startupCommand: python main.py
+    skill-eval-business-agent-deepseek:
+        project: src/skill-eval-business-agent-deepseek
+        host: azure.ai.agent
+        language: docker
+        docker:
+            remoteBuild: true
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+            deployments:
+                - model:
+                    format: DeepSeek
+                    name: DeepSeek-V4-Pro
+                    version: "2026-04-23"
+                  name: DeepSeek-V4-Pro
+                  sku:
+                    capacity: 5000
+                    name: GlobalStandard
+            startupCommand: python main.py
+    skill-eval-business-agent-gpt:
+        project: src/skill-eval-business-agent-gpt
+        host: azure.ai.agent
+        language: docker
+        docker:
+            remoteBuild: true
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+            deployments:
+                - model:
+                    format: OpenAI
+                    name: gpt-5.5
+                    version: "2026-04-24"
+                  name: gpt-5.5
+                  sku:
+                    capacity: 5000
+                    name: GlobalStandard
+            startupCommand: python main.py
+    skill-eval-judge-agent:
+        project: src/skill-eval-judge-agent
+        host: azure.ai.agent
+        language: docker
+        docker:
+            remoteBuild: true
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+            deployments:
+                - model:
+                    format: OpenAI
+                    name: gpt-5.5
+                    version: "2026-04-24"
+                  name: gpt-5.5
+                  sku:
+                    capacity: 5000
+                    name: GlobalStandard
+            startupCommand: python main.py
+    webapp:
+        project: ./webapp
+        host: containerapp
+        language: python
+        docker:
+            path: Dockerfile
+            context: ..
+            remoteBuild: true
+infra:
+    provider: bicep
+    path: infra
+    module: main

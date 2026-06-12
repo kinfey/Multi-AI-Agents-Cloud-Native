@@ -1,0 +1,95 @@
+[
+  {
+    "run_id": "260611-299bc9",
+    "files": [
+      "edge-03__Claude_Opus_4.7.json",
+      "edge-03__GPT-5.5.json"
+    ],
+    "updated": "2026-06-11T06:51:05Z",
+    "cases": 1,
+    "models": [
+      "Claude Opus 4.7",
+      "GPT-5.5"
+    ],
+    "pass_count": 2,
+    "total_count": 2
+  },
+  {
+    "run_id": "260609-a19b9b",
+    "files": [
+      "edge-03__Claude_Opus_4.7.json",
+      "edge-03__GPT-5.5.json"
+    ],
+    "updated": "2026-06-09T07:26:05Z",
+    "cases": 1,
+    "models": [
+      "Claude Opus 4.7",
+      "GPT-5.5"
+    ],
+    "pass_count": 2,
+    "total_count": 2
+  },
+  {
+    "run_id": "260609-ab36c6",
+    "files": [
+      "edge-01__Claude_Opus_4.7.json",
+      "edge-01__GPT-5.5.json",
+      "edge-02__Claude_Opus_4.7.json",
+      "edge-02__GPT-5.5.json",
+      "edge-03__Claude_Opus_4.7.json",
+      "edge-03__GPT-5.5.json",
+      "edge-04__Claude_Opus_4.7.json",
+      "edge-04__GPT-5.5.json",
+      "edge-05__Claude_Opus_4.7.json",
+      "edge-05__GPT-5.5.json",
+      "edge-06__Claude_Opus_4.7.json",
+      "edge-06__GPT-5.5.json",
+      "edge-07__Claude_Opus_4.7.json",
+      "edge-07__GPT-5.5.json",
+      "edge-08__Claude_Opus_4.7.json",
+      "edge-08__GPT-5.5.json",
+      "edge-09__Claude_Opus_4.7.json",
+      "edge-09__GPT-5.5.json",
+      "edge-10__Claude_Opus_4.7.json",
+      "edge-10__GPT-5.5.json"
+    ],
+    "updated": "2026-06-09T04:01:16Z",
+    "cases": 10,
+    "models": [
+      "Claude Opus 4.7",
+      "GPT-5.5"
+    ],
+    "pass_count": 20,
+    "total_count": 20
+  },
+  {
+    "run_id": "260609-152d5b",
+    "files": [
+      "edge-02__Claude_Opus_4.7.json",
+      "edge-02__GPT-5.5.json"
+    ],
+    "updated": "2026-06-09T02:52:32Z",
+    "cases": 1,
+    "models": [
+      "Claude Opus 4.7",
+      "GPT-5.5"
+    ],
+    "pass_count": 2,
+    "total_count": 2
+  },
+  {
+    "run_id": "260609-a832be",
+    "files": [
+      "edge-02__Claude_Opus_4.7.json",
+      "edge-02__GPT-5.5.json"
+    ],
+    "updated": "2026-06-09T02:15:05Z",
+    "cases": 1,
+    "models": [
+      "Claude Opus 4.7",
+      "GPT-5.5"
+    ],
+    "pass_count": 2,
+    "total_count": 2
+  }
+]

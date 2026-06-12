@@ -1,0 +1,5 @@
+agent-framework>=0.1.0b1
+agent-framework-foundry-hosting>=0.1.0b1
+azure-ai-projects>=1.0.0b8
+azure-identity>=1.17.0
+python-dotenv>=1.0.1

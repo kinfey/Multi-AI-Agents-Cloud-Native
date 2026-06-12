@@ -1,0 +1,13 @@
+# Dev / local-run dependencies (superset). The webapp/ and hosted_agent/ have
+# their own slimmer requirements.txt for container images.
+agent-framework>=0.1.0b1
+agent-framework-foundry-hosting>=0.1.0b1
+azure-ai-projects>=1.0.0b8
+azure-identity>=1.17.0
+azure-storage-blob>=12.20.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.1
+httpx>=0.27.0
+rich>=13.7.0
