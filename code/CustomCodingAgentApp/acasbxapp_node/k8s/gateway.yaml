@@ -1,0 +1,111 @@
+# OpenClaw gateway (acasbxapp_node) on AKS.
+#
+# Auth model: the pod uses the AKS kubelet managed identity via IMDS. The
+# entrypoint runs `az login --identity --client-id $AZURE_CLIENT_ID`, and that
+# identity has Cognitive Services User / OpenAI User on the Foundry resource.
+#
+# The gateway env (token, Foundry endpoint, sandbox ids) is injected from the
+# `openclaw-gateway-env` secret created by scripts/deploy-aks-gateway.sh.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: acasbxapp-gateway
+  namespace: openclaw
+  labels:
+    app.kubernetes.io/name: acasbxapp-gateway
+    app.kubernetes.io/part-of: openclaw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: acasbxapp-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: acasbxapp-gateway
+        app.kubernetes.io/part-of: openclaw
+    spec:
+      containers:
+        - name: gateway
+          image: __GATEWAY_IMAGE__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 18789
+          env:
+            - name: OPENCLAW_CONFIG_PATH
+              value: /state/openclaw/openclaw.json5
+            # Kubelet managed identity client id (for `az login --identity`).
+            - name: AZURE_CLIENT_ID
+              value: __KUBELET_CLIENT_ID__
+          envFrom:
+            - secretRef:
+                name: openclaw-gateway-env
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: state
+              mountPath: /state/openclaw
+      volumes:
+        # Ephemeral state; the entrypoint regenerates config on each start.
+        - name: state
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: acasbxapp-gateway
+  namespace: openclaw
+  labels:
+    app.kubernetes.io/name: acasbxapp-gateway
+    app.kubernetes.io/part-of: openclaw
+spec:
+  selector:
+    app.kubernetes.io/name: acasbxapp-gateway
+  ports:
+    - name: http
+      port: 18789
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: acasbxapp-gateway
+  namespace: openclaw
+  labels:
+    app.kubernetes.io/name: acasbxapp-gateway
+    app.kubernetes.io/part-of: openclaw
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: acasbxapp-gateway
+                port:
+                  number: 18789

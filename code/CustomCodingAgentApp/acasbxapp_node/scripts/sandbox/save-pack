@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# save-pack — sandbox-side packaging helper for the OpenClaw save-agent.
+#
+# Background: with sandbox backend `aca`, all agents share one sandbox and write
+# their files under /tmp/openclaw-sandboxes/<agent>/workspace. OpenClaw only syncs
+# local->remote (skills/workspace upload); it never syncs the generated project
+# back to the gateway's /state/openclaw/workspaces. So the gateway-side
+# `save-agent-pack` has nothing real to package.
+#
+# This helper runs INSIDE the sandbox (where the real files live), zips the
+# coding-agent + testing-agent workspaces, and uploads the archive to the
+# gateway-served Azure Files `artifacts/` share via the deploy managed identity.
+# The gateway then serves it at /api/saveagent/artifacts/<id>.zip (auth: gateway).
+#
+# Usage: save-pack
+# Emits a single JSON line: {"artifactId":"..","downloadUrl":"..","bytes":N}
+set -euo pipefail
+
+# shellcheck disable=SC1091
+. /etc/openclaw-deploy.env
+
+SA="${OPENCLAW_DEPLOY_STORAGE_ACCOUNT:?OPENCLAW_DEPLOY_STORAGE_ACCOUNT is required}"
+SHARE="${OPENCLAW_DEPLOY_STORAGE_SHARE:-openclaw}"
+GATEWAY_URL="${OPENCLAW_GATEWAY_PUBLIC_URL:?OPENCLAW_GATEWAY_PUBLIC_URL is required}"
+SBX_ROOT="${OPENCLAW_SANDBOXES_ROOT:-/tmp/openclaw-sandboxes}"
+MAX_BYTES="${OPENCLAW_ARTIFACT_MAX_BYTES:-104857600}"
+
+for cmd in zip find az od; do
+  command -v "$cmd" >/dev/null || { echo "Required command unavailable: $cmd" >&2; exit 1; }
+done
+
+artifact_id="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+staging="$(mktemp -d "${TMPDIR:-/tmp}/save-pack.XXXXXX")"
+zip_path="/tmp/${artifact_id}.zip"
+trap 'rm -rf "$staging" "$zip_path"' EXIT
+
+found_any=0
+for agent in coding-agent testing-agent; do
+  # Prefer the most recently modified workspace when several exist (stale dirs
+  # from earlier runs can linger in a reused sandbox).
+  ws=""
+  for cand in $(ls -dt "$SBX_ROOT"/*"${agent}"*/workspace 2>/dev/null); do
+    [ -d "$cand" ] || continue
+    if [ -n "$(find "$cand" -mindepth 1 -type f \
+          ! -path '*/.git/*' ! -path '*/.openclaw/*' ! -path '*/.cache/*' \
+          ! -name 'AGENTS.md' ! -name 'SOUL.md' ! -name 'USER.md' \
+          ! -name 'TOOLS.md' ! -name 'IDENTITY.md' ! -name 'BOOTSTRAP.md' \
+          ! -name 'HEARTBEAT.md' ! -name 'openclaw-workspace-state.json' -print -quit)" ]; then
+      ws="$cand"
+      break
+    fi
+  done
+  if [ -z "$ws" ]; then
+    continue
+  fi
+  dest="$staging/$agent"
+  mkdir -p "$dest"
+  while IFS= read -r -d '' src; do
+    rel="${src#"$ws"/}"
+    case "/$rel" in
+      */.git/*|/.git/*|*/.openclaw/*|/.openclaw/*|*/__pycache__/*|*/.venv/*|*/venv/*|*/node_modules/*|*/instance/*) continue ;;
+      */.cache/*|/.cache/*|*/.pytest_cache/*|*/.mypy_cache/*|*/.ruff_cache/*) continue ;;
+      */.env|*/.env.*|*/id_rsa|*/id_ed25519|*/.git-credentials|*/.ssh/*|*/credentials.json|*.pyc) continue ;;
+      # OpenClaw workspace meta files (not user project content).
+      /AGENTS.md|/SOUL.md|/USER.md|/TOOLS.md|/IDENTITY.md|/BOOTSTRAP.md|/HEARTBEAT.md|/openclaw-workspace-state.json) continue ;;
+    esac
+    mkdir -p "$dest/$(dirname "$rel")"
+    cp -p "$src" "$dest/$rel"
+  done < <(find "$ws" -type f -print0)
+  found_any=1
+done
+
+if [ "$found_any" -ne 1 ]; then
+  echo "No agent workspaces with project files found under $SBX_ROOT" >&2
+  exit 1
+fi
+
+( cd "$staging" && zip -q -r "$zip_path" . )
+
+bytes="$(wc -c < "$zip_path" | tr -d ' ')"
+if [ "$bytes" -gt "$MAX_BYTES" ]; then
+  echo "Artifact ($bytes bytes) exceeds OPENCLAW_ARTIFACT_MAX_BYTES ($MAX_BYTES)" >&2
+  exit 1
+fi
+
+az login --identity --client-id "$OPENCLAW_DEPLOY_CLIENT_ID" -o none
+KEY="$(az storage account keys list -g "$OPENCLAW_DEPLOY_RESOURCE_GROUP" -n "$SA" --query '[0].value' -o tsv)"
+az storage directory create --account-name "$SA" --account-key "$KEY" \
+  --share-name "$SHARE" --name artifacts -o none 2>/dev/null || true
+az storage file upload --account-name "$SA" --account-key "$KEY" \
+  --share-name "$SHARE" --source "$zip_path" --path "artifacts/${artifact_id}.zip" -o none
+
+download_url="${GATEWAY_URL%/}/api/saveagent/artifacts/${artifact_id}.zip"
+printf '{"artifactId":"%s","downloadUrl":"%s","bytes":%s}\n' \
+  "$artifact_id" "$download_url" "$bytes"

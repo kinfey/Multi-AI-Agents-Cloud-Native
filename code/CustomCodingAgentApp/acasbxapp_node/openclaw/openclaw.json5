@@ -1,0 +1,109 @@
+{
+  gateway: {
+    mode: "remote",
+    bind: "lan",
+    port: 18789,
+    auth: {
+      mode: "token",
+      token: "${OPENCLAW_GATEWAY_TOKEN}",
+    },
+    controlUi: {
+      allowedOrigins: [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789",
+        "https://azure-openclaw-aca-app.bluedune-876fc257.swedencentral.azurecontainerapps.io",
+      ],
+    },
+    http: {
+      endpoints: {
+        // Enables the OpenAI-compatible /v1/chat/completions (+ /v1/responses)
+        // surface consumed by the acamcp_node MCP service.
+        chatCompletions: { enabled: true },
+      },
+    },
+  },
+  models: {
+    providers: {
+      "microsoft-foundry": {
+        baseUrl: "${AZURE_AI_FOUNDRY_ENDPOINT}",
+        apiKey: "__entra_id_dynamic__",
+        api: "openai-responses",
+      },
+    },
+  },
+  agents: {
+    defaults: {
+      model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      workspace: "/state/openclaw/workspaces",
+      sandbox: {
+        mode: "all",
+        backend: "aca",
+        scope: "agent",
+        workspaceAccess: "rw",
+        aca: {
+          id: "${OPENCLAW_ACA_SANDBOX_ID}",
+          sandboxGroup: "${OPENCLAW_ACA_SANDBOX_GROUP}",
+          resourceGroup: "${AZURE_RESOURCE_GROUP}",
+          region: "${AZURE_LOCATION}",
+          workspaceRoot: "/tmp/openclaw-sandboxes",
+        },
+      },
+    },
+    list: [
+      {
+        id: "requirements-agent",
+        name: "Requirement Agent",
+        workspace: "/state/openclaw/workspaces/requirements-agent",
+        agentDir: "/tmp/openclaw/agents/requirements-agent/agent",
+        model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      },
+      {
+        id: "coding-agent",
+        name: "Coding Agent",
+        workspace: "/state/openclaw/workspaces/coding-agent",
+        agentDir: "/tmp/openclaw/agents/coding-agent/agent",
+        model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      },
+      {
+        id: "testing-agent",
+        name: "Testing Agent",
+        workspace: "/state/openclaw/workspaces/testing-agent",
+        agentDir: "/tmp/openclaw/agents/testing-agent/agent",
+        model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      },
+      {
+        id: "deployment-agent",
+        name: "Deployment Agent",
+        workspace: "/state/openclaw/workspaces/deployment-agent",
+        agentDir: "/tmp/openclaw/agents/deployment-agent/agent",
+        model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      },
+      {
+        id: "save-agent",
+        name: "Save Agent",
+        workspace: "/state/openclaw/workspaces/save-agent",
+        agentDir: "/tmp/openclaw/agents/save-agent/agent",
+        model: "microsoft-foundry/${AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT}",
+      },
+    ],
+  },
+  plugins: {
+    entries: {
+      "save-agent": { enabled: true },
+    },
+  },
+  tools: {
+    allow: ["read", "write", "edit", "apply_patch", "exec", "sessions_list", "sessions_history", "sessions_send"],
+    agentToAgent: {
+      enabled: true,
+      allow: ["requirements-agent", "coding-agent", "testing-agent", "deployment-agent", "save-agent"],
+    },
+  },
+  bindings: [
+    { agentId: "requirements-agent", match: { channel: "gateway", accountId: "requirements" } },
+    { agentId: "coding-agent", match: { channel: "gateway", accountId: "coding" } },
+    { agentId: "testing-agent", match: { channel: "gateway", accountId: "testing" } },
+    { agentId: "deployment-agent", match: { channel: "gateway", accountId: "deployment" } },
+    { agentId: "save-agent", match: { channel: "gateway", accountId: "save" } },
+  ],
+}

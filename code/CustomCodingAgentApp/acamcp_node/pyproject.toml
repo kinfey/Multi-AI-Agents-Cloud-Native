@@ -1,0 +1,18 @@
+[project]
+name = "openclaw-workflow-mcp"
+version = "0.1.0"
+description = "MCP service exposing the OpenClaw programming workflow as tools over streamable HTTP."
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.26.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+pythonpath = ["."]

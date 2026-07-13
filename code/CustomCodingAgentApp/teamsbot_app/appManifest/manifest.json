@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "${{MICROSOFT_APP_ID}}",
+  "developer": {
+    "name": "OpenClaw",
+    "websiteUrl": "https://learn.microsoft.com/azure/container-apps/mcp-overview",
+    "privacyUrl": "https://learn.microsoft.com/azure/container-apps/mcp-overview",
+    "termsOfUseUrl": "https://learn.microsoft.com/azure/container-apps/mcp-overview"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "OpenClaw Workflow",
+    "full": "OpenClaw Multi-Agent Workflow Bot"
+  },
+  "description": {
+    "short": "Generate project prototypes via the OpenClaw MCP workflow.",
+    "full": "Chat with the OpenClaw multi-agent workflow (requirements -> coding -> testing -> deployment -> save) through the acamcp_node MCP service. Send a requirement to generate a prototype; the bot proactively returns the deployed URL and source download link when the run completes."
+  },
+  "accentColor": "#0F6CBD",
+  "bots": [
+    {
+      "botId": "${{MICROSOFT_APP_ID}}",
+      "scopes": ["personal", "team", "groupChat"],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team", "groupChat"],
+          "commands": [
+            { "title": "help", "description": "显示帮助" },
+            { "title": "health", "description": "检查网关健康状态" },
+            { "title": "agent <id> <message>", "description": "调用单个智能体" }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": []
+}

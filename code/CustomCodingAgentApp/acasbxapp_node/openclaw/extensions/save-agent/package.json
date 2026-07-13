@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/save-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authenticated downloads for save-agent project archives",
+  "type": "module",
+  "devDependencies": {
+    "@openclaw/plugin-sdk": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

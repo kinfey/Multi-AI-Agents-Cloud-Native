@@ -1,0 +1,49 @@
+{
+  gateway: {
+    mode: "remote",
+    bind: "lan",
+    port: 18789,
+    auth: { mode: "token", token: "f6ef3e40b366ebec06d3dc365977ba7925dc687870142a34" },
+    controlUi: {
+      allowedOrigins: ["http://localhost:18789","http://127.0.0.1:18789"],
+    },
+  },
+  models: {
+    providers: {
+      "microsoft-foundry": {
+        baseUrl: "https://kinfey-ai-foundry.services.ai.azure.com/openai/v1",
+        apiKey: "__entra_id_dynamic__",
+        api: "openai-responses",
+      },
+    },
+  },
+  agents: {
+    defaults: {
+      model: "microsoft-foundry/gpt-5.5",
+      workspace: "/state/openclaw/workspaces",
+      sandbox: {
+        mode: "all",
+        backend: "aca",
+        scope: "agent",
+        workspaceAccess: "rw",
+        aca: {
+          id: "b2943423-0345-4f17-8ca1-eb82bd5a31ad",
+          sandboxGroup: "azure-openclaw-aca-sandbox",
+          resourceGroup: "rg-kinfey",
+          region: "swedencentral",
+          workspaceRoot: "/tmp/openclaw-sandboxes",
+        },
+      },
+    },
+    list: [
+      { id: "requirements-agent", name: "Requirement Agent", workspace: "/state/openclaw/workspaces/requirements-agent", agentDir: "/tmp/openclaw/agents/requirements-agent/agent" },
+      { id: "coding-agent", name: "Coding Agent", workspace: "/state/openclaw/workspaces/coding-agent", agentDir: "/tmp/openclaw/agents/coding-agent/agent" },
+      { id: "testing-agent", name: "Testing Agent", workspace: "/state/openclaw/workspaces/testing-agent", agentDir: "/tmp/openclaw/agents/testing-agent/agent" },
+      { id: "deployment-agent", name: "Deployment Agent", workspace: "/state/openclaw/workspaces/deployment-agent", agentDir: "/tmp/openclaw/agents/deployment-agent/agent" },
+    ],
+  },
+  tools: {
+    allow: ["read", "write", "edit", "apply_patch", "exec", "sessions_list", "sessions_history", "sessions_send"],
+    agentToAgent: { enabled: true, allow: ["requirements-agent", "coding-agent", "testing-agent", "deployment-agent"] },
+  },
+}

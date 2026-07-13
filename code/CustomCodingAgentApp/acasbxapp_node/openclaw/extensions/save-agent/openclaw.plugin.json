@@ -1,0 +1,14 @@
+{
+  "id": "save-agent",
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": ["deploy_to_aca", "package_agent_workspaces"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -1,0 +1,391 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.43.8.12551",
+      "templateHash": "7493043620661117249"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources."
+      }
+    },
+    "prefix": {
+      "type": "string",
+      "defaultValue": "azure-openclaw-aca",
+      "minLength": 5,
+      "metadata": {
+        "description": "Normalized resource prefix. Use azure-openclaw-aca for the requested azure openclaw_aca name."
+      }
+    },
+    "acrName": {
+      "type": "string",
+      "defaultValue": "azureopenclawaca",
+      "minLength": 5,
+      "maxLength": 50,
+      "metadata": {
+        "description": "Globally unique Azure Container Registry name. Lowercase letters and numbers only."
+      }
+    },
+    "storageName": {
+      "type": "string",
+      "defaultValue": "stazureopenclawaca",
+      "minLength": 3,
+      "maxLength": 24,
+      "metadata": {
+        "description": "Globally unique storage account name. Lowercase letters and numbers only."
+      }
+    },
+    "openclawImage": {
+      "type": "string",
+      "metadata": {
+        "description": "Container image to deploy, for example <acr>.azurecr.io/openclaw:latest."
+      }
+    },
+    "foundryEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "Microsoft Foundry or Azure AI Foundry endpoint used by OpenClaw."
+      }
+    },
+    "foundryModelDeployment": {
+      "type": "string",
+      "defaultValue": "gpt-5.5",
+      "metadata": {
+        "description": "Microsoft Foundry model deployment name. The requested value is gpt-5.5."
+      }
+    },
+    "openclawGatewayToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "OpenClaw gateway token. Generate with openssl rand -hex 24."
+      }
+    },
+    "acaSandboxId": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing ACA sandbox id used by the custom OpenClaw ACA backend."
+      }
+    }
+  },
+  "variables": {
+    "cleanPrefix": "[replace(toLower(parameters('prefix')), '_', '-')]",
+    "environmentName": "[format('{0}-env', variables('cleanPrefix'))]",
+    "appName": "[format('{0}-app', variables('cleanPrefix'))]",
+    "acrPullIdentityName": "[format('{0}-acr-pull-mi', variables('cleanPrefix'))]",
+    "fileShareName": "openclaw",
+    "envStorageName": "openclaw-fileshare",
+    "acrPullRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+    "acrPushRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')]",
+    "acrTasksContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'fb382eab-e894-4461-af04-94435c366c3f')]",
+    "containerAppsContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '358470bc-b998-42bd-ab17-a7e34c199c0f')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('acrName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": false
+      }
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('acrPullIdentityName')]",
+      "location": "[parameters('location')]"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName')), 'acr-pull')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[variables('acrPullRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('storageName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "allowBlobPublicAccess": false,
+        "minimumTlsVersion": "TLS1_2"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', parameters('storageName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}/{2}', parameters('storageName'), 'default', variables('fileShareName'))]",
+      "properties": {
+        "shareQuota": 32,
+        "enabledProtocols": "SMB"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', parameters('storageName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[variables('environmentName')]",
+      "location": "[parameters('location')]",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments/storages",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}/{1}', variables('environmentName'), variables('envStorageName'))]",
+      "properties": {
+        "azureFile": {
+          "accountName": "[parameters('storageName')]",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageName')), '2023-05-01').keys[0].value]",
+          "shareName": "[variables('fileShareName')]",
+          "accessMode": "ReadWrite"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', variables('environmentName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', parameters('storageName'), 'default', variables('fileShareName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[variables('appName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned, UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName')))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('environmentName'))]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 18789,
+            "transport": "auto",
+            "allowInsecure": false,
+            "idleTimeout": 30
+          },
+          "registries": [
+            {
+              "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName'))]"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "openclaw-gateway-token",
+              "value": "[parameters('openclawGatewayToken')]"
+            }
+          ]
+        },
+        "template": {
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 3
+          },
+          "containers": [
+            {
+              "name": "openclaw",
+              "image": "[parameters('openclawImage')]",
+              "env": [
+                {
+                  "name": "OPENCLAW_GATEWAY_TOKEN",
+                  "secretRef": "openclaw-gateway-token"
+                },
+                {
+                  "name": "OPENCLAW_CONFIG_PATH",
+                  "value": "/state/openclaw/openclaw.json5"
+                },
+                {
+                  "name": "AZURE_AI_FOUNDRY_ENDPOINT",
+                  "value": "[parameters('foundryEndpoint')]"
+                },
+                {
+                  "name": "AZURE_AI_FOUNDRY_MODEL_DEPLOYMENT",
+                  "value": "[parameters('foundryModelDeployment')]"
+                },
+                {
+                  "name": "NODE_OPTIONS",
+                  "value": "--max-old-space-size=1024"
+                },
+                {
+                  "name": "AZURE_RESOURCE_GROUP",
+                  "value": "[resourceGroup().name]"
+                },
+                {
+                  "name": "AZURE_SUBSCRIPTION_ID",
+                  "value": "[subscription().subscriptionId]"
+                },
+                {
+                  "name": "ACA_SUBSCRIPTION",
+                  "value": "[subscription().subscriptionId]"
+                },
+                {
+                  "name": "AZURE_LOCATION",
+                  "value": "[parameters('location')]"
+                },
+                {
+                  "name": "ACR_NAME",
+                  "value": "[parameters('acrName')]"
+                },
+                {
+                  "name": "CONTAINER_APP_ENVIRONMENT",
+                  "value": "[variables('environmentName')]"
+                },
+                {
+                  "name": "OPENCLAW_DEPLOY_IDENTITY_ID",
+                  "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName'))]"
+                },
+                {
+                  "name": "OPENCLAW_ACA_SANDBOX_GROUP",
+                  "value": "[format('{0}-sandbox', variables('cleanPrefix'))]"
+                },
+                {
+                  "name": "OPENCLAW_ACA_SANDBOX_ID",
+                  "value": "[parameters('acaSandboxId')]"
+                }
+              ],
+              "resources": {
+                "cpu": "[json('1.0')]",
+                "memory": "2Gi"
+              },
+              "volumeMounts": [
+                {
+                  "volumeName": "openclaw-state",
+                  "mountPath": "/state/openclaw"
+                }
+              ]
+            }
+          ],
+          "volumes": [
+            {
+              "name": "openclaw-state",
+              "storageType": "AzureFile",
+              "storageName": "[variables('envStorageName')]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+        "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName')), 'acr-pull'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', variables('environmentName'))]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', variables('environmentName'), variables('envStorageName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, resourceId('Microsoft.App/containerApps', variables('appName')), 'container-apps-contributor')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[variables('containerAppsContributorRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', variables('appName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), resourceId('Microsoft.App/containerApps', variables('appName')), 'acr-push')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[variables('acrPushRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('appName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), resourceId('Microsoft.App/containerApps', variables('appName')), 'acr-tasks-contributor')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[variables('acrTasksContributorRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]",
+        "[resourceId('Microsoft.App/containerApps', variables('appName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "acrLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer]"
+    },
+    "containerAppName": {
+      "type": "string",
+      "value": "[variables('appName')]"
+    },
+    "containerAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01', 'full').identity.principalId]"
+    },
+    "acrPullIdentityClientId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('acrPullIdentityName')), '2023-01-31').clientId]"
+    },
+    "containerAppsEnvironmentName": {
+      "type": "string",
+      "value": "[variables('environmentName')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageName')]"
+    },
+    "fileShareName": {
+      "type": "string",
+      "value": "[variables('fileShareName')]"
+    },
+    "gatewayUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', variables('appName')), '2024-03-01').configuration.ingress.fqdn)]"
+    }
+  }
+}

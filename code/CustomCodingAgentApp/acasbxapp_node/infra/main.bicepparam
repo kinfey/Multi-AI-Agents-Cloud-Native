@@ -1,0 +1,11 @@
+using './main.bicep'
+
+param location = 'swedencentral'
+param prefix = 'azure-openclaw-aca'
+param acrName = 'azureopenclawaca'
+param storageName = 'stazureopenclawaca'
+param openclawImage = '<acr-login-server>/openclaw:latest'
+param foundryEndpoint = '<foundry-endpoint>'
+param foundryModelDeployment = 'gpt-5.5'
+param openclawGatewayToken = '<generate-with-openssl-rand-hex-24>'
+param acaSandboxId = '<existing-aca-sandbox-id>'
