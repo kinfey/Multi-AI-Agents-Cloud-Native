@@ -1,0 +1,189 @@
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsSandbox
+metadata:
+  name: media-claw-agent
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    # Selector key consumed by ToolPolicy.spec.appliesTo.sandboxMatchLabels.
+    # The CRD's CEL guard requires that selector to be non-empty, so this
+    # label is what actually binds the AGT profile to this sandbox.
+    kars.azure.com/sandbox: media-claw-agent
+spec:
+  runtime:
+    kind: OpenClaw
+    openclaw:
+      image: ${MEDIA_CLAW_OPENCLAW_IMAGE}
+  inferenceRef:
+    name: media-claw-inference
+  memoryRef:
+    name: media-claw-memory
+  # governance.enabled=true REQUIRES governance.toolPolicyRef.name. Without
+  # the ref the controller never mounts /etc/agt/policies/agt-profile.yaml,
+  # and the sandbox entrypoint logs:
+  #   "WARN: AGT governance enabled but no ToolPolicy mount ... fail closed."
+  # i.e. the AGT engine starts with an empty policy set and denies every
+  # tool call. See reconciler/mod.rs (governance off => ref unread).
+  governance:
+    enabled: true
+    toolPolicyRef:
+      name: media-claw-toolpolicy
+    trustThreshold: 700
+  sandbox:
+    isolation: enhanced
+    seccompProfile: kars-strict
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    writablePaths: [/sandbox, /tmp]
+  # egressMode: Strict renders a real NetworkPolicy whose egress rules are the
+  # closure of allowedEndpoints — anything not listed is dropped at the pod
+  # boundary. With Strict and an EMPTY list the agent has NO egress at all.
+  # This agent talks to Azure via the SDKs directly (not through the router
+  # loopback proxy), so every host it dials must be enumerated here.
+  networkPolicy:
+    defaultDeny: true
+    egressMode: Strict
+    allowedEndpoints:
+      # Entra token endpoint — workload identity federation (AAD).
+      - host: "login.microsoftonline.com"
+        port: 443
+      # Foundry: gpt-5.5 script generation + MAI-Image-2.5-Pro image generation.
+      - host: "${AZURE_FOUNDRY_HOST}"
+        port: 443
+      # Azure Speech TTS — SpeechConfig(endpoint=AZURE_SPEECH_ENDPOINT).
+      - host: "${AZURE_SPEECH_HOST}"
+        port: 443
+      # Speech SDK transport selected behind the configured custom endpoint.
+      # This is an egress dependency only; SpeechConfig still uses the host above.
+      - host: "swedencentral.tts.speech.microsoft.com"
+        port: 443
+      # Blob Storage — rendered video + manifest upload.
+      - host: "${AZURE_STORAGE_HOST}"
+        port: 443
+      # RSS sources consumed by feedparser (must cover every host in NEWS_FEED_URLS).
+      - host: "${NEWS_FEED_HOST}"
+        port: 443
+      - host: "${NEWS_FEED_HOST_2}"
+        port: 443
+  # Drives federated-credential provisioning when KARS_AUTH_MODE=workload-identity.
+  azureServices:
+    - service: ai-foundry
+      account: ${AZURE_FOUNDRY_ACCOUNT}
+      permissions: [inference]
+    - service: storage
+      account: ${AZURE_STORAGE_ACCOUNT}
+      permissions: [read, write]
+  # ffmpeg render is CPU/memory heavy and bursty; bound it so a single run
+  # cannot starve co-tenants or get the pod evicted unpredictably.
+  resources:
+    requests:
+      cpu: "850m"
+      memory: "2Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsSandbox
+metadata:
+  name: media-app-agent
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-app-agent
+spec:
+  runtime:
+    kind: OpenClaw
+    openclaw:
+      image: ${KARS_OPENCLAW_IMAGE}
+  inferenceRef:
+    name: media-app-inference
+  governance:
+    enabled: true
+    toolPolicyRef:
+      name: media-app-toolpolicy
+    trustThreshold: 700
+  sandbox:
+    isolation: enhanced
+    seccompProfile: kars-strict
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    writablePaths: [/sandbox, /tmp]
+  # Delivery front-end: only Entra + Blob. It never calls Foundry, Speech or
+  # any news source, so those hosts are deliberately absent.
+  networkPolicy:
+    defaultDeny: true
+    egressMode: Strict
+    allowedEndpoints:
+      - host: "login.microsoftonline.com"
+        port: 443
+      # Blob Storage — video listing plus user-delegation SAS issuance.
+      - host: "${AZURE_STORAGE_HOST}"
+        port: 443
+  azureServices:
+    - service: storage
+      account: ${AZURE_STORAGE_ACCOUNT}
+      permissions: [read, write]
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsSandbox
+metadata:
+  name: media-testing-agent
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-testing-agent
+spec:
+  runtime:
+    kind: OpenClaw
+    openclaw:
+      image: ${KARS_OPENCLAW_IMAGE}
+  inferenceRef:
+    name: media-testing-inference
+  governance:
+    enabled: true
+    toolPolicyRef:
+      name: media-testing-toolpolicy
+    trustThreshold: 800
+  sandbox:
+    isolation: enhanced
+    seccompProfile: kars-strict
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    writablePaths: [/sandbox, /tmp]
+  # Red-team harness: Entra, Foundry evaluations, and the redteam report
+  # container. No Speech and no news egress.
+  networkPolicy:
+    defaultDeny: true
+    egressMode: Strict
+    allowedEndpoints:
+      - host: "login.microsoftonline.com"
+        port: 443
+      - host: "${AZURE_FOUNDRY_HOST}"
+        port: 443
+      - host: "${AZURE_STORAGE_HOST}"
+        port: 443
+  azureServices:
+    - service: ai-foundry
+      account: ${AZURE_FOUNDRY_ACCOUNT}
+      permissions: [inference, evaluate]
+    - service: storage
+      account: ${AZURE_STORAGE_ACCOUNT}
+      permissions: [read, write]
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"

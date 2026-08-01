@@ -1,0 +1,256 @@
+# ToolPolicy — the sole source of AGT governance profiles.
+#
+# Each KarsSandbox in this project sets `spec.governance.enabled: true`,
+# which the CRD requires to be paired with `spec.governance.toolPolicyRef.name`.
+# The controller resolves that ref in the sandbox's own namespace
+# (finance-media), compiles `spec.agtProfile.inline` into a ConfigMap under the
+# wire-contract key `agt-profile.yaml`, and mounts it at
+# /etc/agt/policies/agt-profile.yaml inside the sandbox. The inference-router
+# loads it through the AGT policy engine and gates every tool call.
+#
+# Without this file the sandbox entrypoint emits:
+#   [kars] WARN: AGT governance enabled but no ToolPolicy mount at
+#   /etc/agt/policies/agt-profile.yaml; AGT engine will start with an empty
+#   policy set and fail closed.
+# ...and every tool call is denied.
+#
+# Profile body format: agentmesh PolicyEngine.
+#   - Rules are evaluated by `priority` (higher first); first match wins.
+#   - `type: capability` -> allowed_actions / denied_actions
+#   - `type: approval`   -> actions + min_approvals
+#   - `type: rate_limit` -> actions + max_calls + window
+# Action shape: inference:chat_completions:<model>, image_generation:<deployment>,
+#               shell:<command>, tool:<tool_name>, spawn:create:<name>,
+#               mesh:send:<peer>, admin:<operation>
+#
+# Infrastructure-level controls (NetworkPolicy, read-only rootfs, IMDS blocking,
+# content safety, token budgets) are enforced by kars at the kernel/router tier
+# and are deliberately NOT duplicated here.
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: ToolPolicy
+metadata:
+  name: media-claw-toolpolicy
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-claw-agent
+spec:
+  displayName: Media Claw video production governance
+  appliesTo:
+    tool: "*"
+    sandboxMatchLabels:
+      kars.azure.com/sandbox: media-claw-agent
+  agtProfile:
+    inline: |
+      version: "1.0"
+      agent: media-claw-agent
+
+      policies:
+        # ── Shell safety: deny destructive/pivot commands first ────────
+        - name: shell-destructive-deny
+          type: capability
+          denied_actions:
+            - "shell:rm"
+            - "shell:mkfs"
+            - "shell:shutdown"
+            - "shell:reboot"
+            - "shell:dd"
+            - "shell:nmap"
+            - "shell:nc"
+            - "shell:netcat"
+            - "shell:socat"
+            - "shell:nsenter"
+            - "shell:unshare"
+            - "shell:chroot"
+          priority: 100
+
+        # ── Shell allow-list: only what the video pipeline needs ───────
+        # ffmpeg/ffprobe do the render; python drives the pipeline.
+        - name: shell-media-pipeline
+          type: capability
+          allowed_actions:
+            - "shell:ffmpeg"
+            - "shell:ffprobe"
+            - "shell:python"
+            - "shell:python3"
+            - "shell:ls"
+            - "shell:cat"
+            - "shell:head"
+            - "shell:tail"
+            - "shell:grep"
+            - "shell:find"
+            - "shell:echo"
+            - "shell:wc"
+            - "shell:jq"
+          priority: 90
+
+        # ── Inference + image generation ───────────────────────────────
+        - name: inference-allow
+          type: capability
+          allowed_actions:
+            - "inference:chat_completions:*"
+            - "inference:responses:*"
+            - "inference:content_safety:*"
+            - "image_generation:*"
+          priority: 80
+
+        # ── Foundry data-plane tools used by the pipeline ──────────────
+        - name: foundry-allow
+          type: capability
+          allowed_actions:
+            - "foundry:image_generation:*"
+            - "foundry:memory:*"
+            - "foundry:conversations:*"
+            - "foundry:web_search:*"
+          priority: 80
+
+        # ── Tool calls (http_fetch for the RSS feeds, blob upload, TTS) ─
+        - name: tool-allow
+          type: capability
+          allowed_actions:
+            - "tool:*"
+          priority: 70
+
+        # ── No sub-agent spawning and no admin surface for this agent ──
+        - name: spawn-admin-deny
+          type: capability
+          denied_actions:
+            - "spawn:*"
+            - "admin:*"
+          priority: 60
+
+        # ── Rate limit: one heartbeat run must not burn the budget ─────
+        - name: inference-rate-limit
+          type: rate_limit
+          actions:
+            - "inference:*"
+            - "image_generation:*"
+          max_calls: 120
+          window: "60s"
+          priority: 40
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: ToolPolicy
+metadata:
+  name: media-app-toolpolicy
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-app-agent
+spec:
+  displayName: Media App delivery governance
+  appliesTo:
+    tool: "*"
+    sandboxMatchLabels:
+      kars.azure.com/sandbox: media-app-agent
+  agtProfile:
+    inline: |
+      version: "1.0"
+      agent: media-app-agent
+
+      policies:
+        # Delivery front-end: no shell, no spawning, no admin at all.
+        - name: shell-spawn-admin-deny
+          type: capability
+          denied_actions:
+            - "shell:*"
+            - "spawn:*"
+            - "admin:*"
+          priority: 100
+
+        # Read-only catalogue serving does not generate images.
+        - name: image-generation-deny
+          type: capability
+          denied_actions:
+            - "image_generation:*"
+            - "foundry:image_generation:*"
+          priority: 95
+
+        - name: inference-allow
+          type: capability
+          allowed_actions:
+            - "inference:chat_completions:*"
+            - "inference:responses:*"
+            - "inference:content_safety:*"
+          priority: 80
+
+        - name: tool-allow
+          type: capability
+          allowed_actions:
+            - "tool:*"
+          priority: 70
+
+        - name: inference-rate-limit
+          type: rate_limit
+          actions:
+            - "inference:*"
+          max_calls: 60
+          window: "60s"
+          priority: 40
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: ToolPolicy
+metadata:
+  name: media-testing-toolpolicy
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-testing-agent
+spec:
+  displayName: Media Testing red-team governance
+  appliesTo:
+    tool: "*"
+    sandboxMatchLabels:
+      kars.azure.com/sandbox: media-testing-agent
+  agtProfile:
+    inline: |
+      version: "1.0"
+      agent: media-testing-agent
+
+      policies:
+        # The red-team agent probes the system; it must never be able to
+        # mutate it. Highest-priority deny covers shell, spawn and admin.
+        - name: shell-spawn-admin-deny
+          type: capability
+          denied_actions:
+            - "shell:*"
+            - "spawn:*"
+            - "admin:*"
+          priority: 100
+
+        - name: image-generation-deny
+          type: capability
+          denied_actions:
+            - "image_generation:*"
+            - "foundry:image_generation:*"
+          priority: 95
+
+        # Evaluation harness needs inference + the evaluations data-plane.
+        - name: inference-allow
+          type: capability
+          allowed_actions:
+            - "inference:chat_completions:*"
+            - "inference:responses:*"
+            - "inference:content_safety:*"
+          priority: 80
+
+        - name: foundry-evaluations-allow
+          type: capability
+          allowed_actions:
+            - "foundry:evaluations:*"
+          priority: 80
+
+        - name: tool-allow
+          type: capability
+          allowed_actions:
+            - "tool:*"
+          priority: 70
+
+        - name: inference-rate-limit
+          type: rate_limit
+          actions:
+            - "inference:*"
+          max_calls: 90
+          window: "60s"
+          priority: 40

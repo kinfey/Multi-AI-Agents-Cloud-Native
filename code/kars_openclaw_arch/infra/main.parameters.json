@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "kubernetesVersion": {
+      "value": "1.35"
+    },
+    "aksAdminPrincipalId": {
+      "value": "${AZURE_AKS_ADMIN_PRINCIPAL_ID}"
+    },
+    "aksClusterName": {
+      "value": "${AKS_CLUSTER_NAME}"
+    },
+    "imageApiKey": {
+      "value": "${AZURE_IMAGE_API_KEY}"
+    },
+    "speechKey": {
+      "value": "${AZURE_SPEECH_KEY}"
+    },
+    "foundryProjectEndpoint": {
+      "value": "${AZURE_FOUNDRY_PROJECT_ENDPOINT}"
+    },
+    "foundryAccountName": {
+      "value": "${AZURE_FOUNDRY_ACCOUNT_NAME}"
+    },
+    "imageEndpoint": {
+      "value": "${AZURE_IMAGE_ENDPOINT}"
+    },
+    "speechEndpoint": {
+      "value": "${AZURE_SPEECH_ENDPOINT}"
+    }
+  }
+}

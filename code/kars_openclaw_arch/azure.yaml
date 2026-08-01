@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/refs/heads/main/schemas/v1.0/azure.yaml.json
+name: finance-shortvideo
+metadata:
+  template: finance-shortvideo@0.1.0
+infra:
+  provider: bicep
+  path: infra
+services:
+  media-app:
+    project: ./agents/media-app-agent
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: ../..
+      remoteBuild: true
+  redteam-app:
+    project: ./agents/media-testing-agent
+    language: py
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      context: ../..
+      remoteBuild: true
+hooks:
+  postprovision:
+    shell: sh
+    run: ./scripts/configure-aks.sh
+    continueOnError: false
+    interactive: true

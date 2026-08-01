@@ -1,0 +1,16 @@
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsMemory
+metadata:
+  name: media-claw-memory
+  namespace: finance-media
+  labels:
+    app.kubernetes.io/part-of: finance-shortvideo
+    kars.azure.com/sandbox: media-claw-agent
+spec:
+  sandboxRef:
+    name: media-claw-agent
+  storeName: memory-media-claw-agent
+  scope: agent_media-claw-agent
+  retentionDays: 30
+  deleteOnSandboxDelete: true
+  displayName: Media Claw agent memory

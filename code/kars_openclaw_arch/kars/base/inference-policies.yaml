@@ -1,0 +1,71 @@
+apiVersion: kars.azure.com/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: media-claw-inference
+  namespace: finance-media
+spec:
+  appliesTo:
+    sandboxName: media-claw-agent
+    action: "*"
+  modelPreference:
+    primary:
+      provider: azure-openai
+      deployment: gpt-5.5
+  tokenBudget:
+    perRequestTokens: 8192
+    dailyTokens: 200000
+    monthlyTokens: 5000000
+  contentSafety:
+    hate: Medium
+    selfHarm: Low
+    sexual: Medium
+    violence: Medium
+    requirePromptShields: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: media-app-inference
+  namespace: finance-media
+spec:
+  appliesTo:
+    sandboxName: media-app-agent
+    action: "*"
+  modelPreference:
+    primary:
+      provider: azure-openai
+      deployment: gpt-5.5
+  tokenBudget:
+    perRequestTokens: 4000
+    dailyTokens: 50000
+    monthlyTokens: 1000000
+  contentSafety:
+    hate: Medium
+    selfHarm: Low
+    sexual: Medium
+    violence: Medium
+    requirePromptShields: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: media-testing-inference
+  namespace: finance-media
+spec:
+  appliesTo:
+    sandboxName: media-testing-agent
+    action: "*"
+  modelPreference:
+    primary:
+      provider: azure-openai
+      deployment: gpt-5.5
+  tokenBudget:
+    perRequestTokens: 8000
+    dailyTokens: 100000
+    monthlyTokens: 2000000
+  contentSafety:
+    hate: Medium
+    selfHarm: Low
+    sexual: Medium
+    violence: Medium
+    requirePromptShields: true

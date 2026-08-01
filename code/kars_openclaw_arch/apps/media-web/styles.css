@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root{--paper:#f1efe7;--ink:#151515;--red:#e7432f;--mint:#83d6bd;--line:#272727;--muted:#66645e;--shadow:8px 8px 0 var(--ink)}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background-color:var(--paper);background-image:repeating-linear-gradient(90deg,transparent 0,transparent 79px,rgba(21,21,21,.055) 80px);font-family:"Space Grotesk","PingFang SC",sans-serif}
+button{font:inherit;color:inherit}
+.masthead{min-height:76px;padding:0 clamp(20px,5vw,72px);gap:12px;border-bottom:2px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:var(--paper)}
+/* The wordmark swaps 盘面十条 for the much wider MARKET TEN on language switch.
+   As a shrinkable flex item it lost that fight against the language switch and
+   the full-length date: the glyphs squashed and the red badge lost its padding.
+   Pinning `flex:0 0 auto` with `nowrap` keeps the logo at its intrinsic size in
+   both languages, and the clamped size absorbs the extra width on phones. */
+.brand{font-family:"Noto Serif SC",serif;font-size:clamp(19px,4.6vw,25px);display:flex;gap:8px;align-items:center;flex:0 0 auto;white-space:nowrap;line-height:1.15}.brand strong{background:var(--red);color:white;padding:4px 8px;display:inline-block;white-space:nowrap}html[lang=en] .brand{font-family:"Space Grotesk",sans-serif;font-weight:700;letter-spacing:.04em}.masthead time{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{max-width:1440px;margin:auto}.player-stage{min-height:calc(100vh - 128px);display:grid;grid-template-columns:minmax(280px,520px) 1fr;gap:clamp(32px,7vw,110px);padding:clamp(32px,6vw,86px);align-items:center}
+.video-shell{position:relative;aspect-ratio:9/16;max-height:72vh;border:2px solid var(--ink);box-shadow:var(--shadow);background:var(--ink);overflow:hidden}.video-shell video{width:100%;height:100%;object-fit:cover}.empty-player{position:absolute;inset:0;display:grid;place-items:center;padding:24px;color:var(--paper);font-family:"Noto Serif SC",serif;font-size:clamp(22px,3vw,40px);text-align:center;background:repeating-linear-gradient(135deg,#171717 0,#171717 18px,#202020 18px,#202020 36px)}
+/* `selectEpisode` hides this overlay with `empty.hidden=true`, but the UA rule
+   `[hidden]{display:none}` loses to the class selector above, so `display:grid`
+   kept winning and the placeholder stayed painted over `#player` forever. This
+   rule must keep at least the specificity of `.empty-player` to take effect. */
+.empty-player[hidden]{display:none}
+.masthead-side{display:flex;align-items:center;gap:16px;min-width:0;flex:0 1 auto}
+.lang-switch{display:flex;border:2px solid var(--line);border-radius:999px;overflow:hidden;flex:0 0 auto}
+.lang-switch button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;padding:6px 14px;cursor:pointer;color:inherit}
+.lang-switch button.active{background:var(--red);color:#fff}
+.kicker{font-size:12px;font-weight:700;color:var(--red);letter-spacing:0}.episode-copy h1{margin:12px 0 22px;font-family:"Noto Serif SC",serif;font-size:clamp(40px,6vw,88px);line-height:1.08;max-width:760px}.episode-copy>p:not(.kicker){font-family:"Noto Serif SC",serif;line-height:1.9;max-width:600px;color:var(--muted)}
+.actions{display:flex;align-items:end;gap:28px;margin-top:36px}.icon-action{height:50px;border:2px solid var(--ink);background:var(--mint);padding:0 18px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--ink)}.icon-action:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}.stars{border:0;padding:0;margin:0}.stars legend{font-size:11px;font-weight:700;margin-bottom:7px}.rating-row{display:flex;align-items:center;gap:10px}.stars button{border:0;background:none;font-size:25px;padding:0 3px;cursor:pointer}.stars button.active{color:var(--red)}.stars button:disabled{cursor:default;opacity:1}.rating-stats{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}.icon-action:disabled{cursor:default;background:var(--paper);box-shadow:2px 2px 0 var(--ink)}.icon-action.voted{color:var(--red)}
+.catalog{border-top:2px solid var(--ink);padding:48px clamp(20px,5vw,72px) 88px;background:rgba(255,255,255,.34)}.section-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:26px}.section-heading h2{font-family:"Noto Serif SC",serif;font-size:36px;margin:0}.section-heading span{font-size:11px;font-weight:700}.episode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px}.episode-card{border-top:2px solid var(--ink);padding-top:12px}.episode-select{width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;display:grid;grid-template-columns:72px 1fr 28px;gap:12px;align-items:center}.episode-select img{width:72px;aspect-ratio:9/16;object-fit:cover;background:var(--red)}.episode-meta{display:flex;flex-direction:column;gap:8px}.episode-meta b{font-family:"Noto Serif SC",serif;line-height:1.35}.episode-meta small{color:var(--muted)}.play-mark{display:grid;place-items:center;width:28px;height:28px;background:var(--ink);color:white;border-radius:50%;font-size:10px}
+@media(max-width:780px){.masthead{min-height:64px}.masthead-side{gap:10px}.player-stage{grid-template-columns:1fr;min-height:auto;padding:30px 20px 54px}.video-shell{width:min(78vw,360px);justify-self:center;max-height:none}.episode-copy h1{font-size:43px}.actions{justify-content:space-between}.catalog{padding:38px 20px 64px}.episode-grid{grid-template-columns:1fr}.episode-select{grid-template-columns:60px 1fr 28px}.episode-select img{width:60px}}
+/* Below this width the full-length date cannot coexist with the wordmark and
+   the language switch; dropping it protects the logo, and every episode row
+   still carries its own date. */
+@media(max-width:520px){.masthead time{display:none}.lang-switch button{padding:6px 11px}}
+
+.site-footer{border-top:2px solid var(--ink);padding:22px clamp(20px,5vw,72px);text-align:center;font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted)}

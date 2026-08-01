@@ -1,0 +1,58 @@
+services:
+  media-claw-agent:
+    build:
+      context: .
+      dockerfile: agents/media-claw-agent/Dockerfile
+    cap_add:
+      - NET_ADMIN
+    environment:
+      SANDBOX_NAME: media-claw-agent
+      KARS_DEV_MODE: "true"
+      KARS_DEV_PROFILE: "true"
+      AGT_SKIP_ENTRA: "1"
+      AGT_SKIP_INIT: "1"
+      OPENCLAW_MODEL: ${AZURE_TEXT_MODEL:-gpt-5.5}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_STORAGE_ACCOUNT_URL: ${AZURE_STORAGE_ACCOUNT_URL:-https://local.invalid}
+      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-media}
+      AZURE_FOUNDRY_PROJECT_ENDPOINT: ${AZURE_FOUNDRY_PROJECT_ENDPOINT:-https://local.invalid}
+      AZURE_TEXT_MODEL: ${AZURE_TEXT_MODEL:-gpt-5.5}
+      AZURE_IMAGE_ENDPOINT: ${AZURE_IMAGE_ENDPOINT:-https://local.invalid}
+      AZURE_IMAGE_MODEL: ${AZURE_IMAGE_MODEL:-MAI-Image-2.5-Pro}
+      AZURE_IMAGE_API_KEY: ${AZURE_IMAGE_API_KEY:-}
+      AZURE_SPEECH_ENDPOINT: ${AZURE_SPEECH_ENDPOINT:-https://local.invalid}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_VOICE: ${AZURE_SPEECH_VOICE:-zh-CN-Mei}
+      AZURE_SPEECH_VOICE_EN: ${AZURE_SPEECH_VOICE_EN:-en-US-AvaMultilingualNeural}
+      TTS_BACKEND: ${TTS_BACKEND:-mai-voice}
+      AZURE_VOICE_MODEL: ${AZURE_VOICE_MODEL:-MAI-Voice-2}
+      AZURE_VOICE_NAME_CN: ${AZURE_VOICE_NAME_CN:-zh-CN-Mei}
+      AZURE_VOICE_NAME_EN: ${AZURE_VOICE_NAME_EN:-en-US-Olivia}
+      NEWS_FEED_URLS: ${NEWS_FEED_URLS:-https://www.cnbc.com/id/20910258/device/rss/rss.html}
+    ports:
+      - "18789:18789"
+    volumes:
+      - media-claw-state:/sandbox
+  media-app:
+    build:
+      context: .
+      dockerfile: agents/media-app-agent/Dockerfile
+    environment:
+      AZURE_STORAGE_ACCOUNT_URL: ${AZURE_STORAGE_ACCOUNT_URL:-https://local.invalid}
+      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-media}
+    ports:
+      - "8000:8000"
+  redteam-app:
+    build:
+      context: .
+      dockerfile: agents/media-testing-agent/Dockerfile
+    environment:
+      AZURE_STORAGE_ACCOUNT_URL: ${AZURE_STORAGE_ACCOUNT_URL:-https://local.invalid}
+      AZURE_REPORT_CONTAINER: ${AZURE_REPORT_CONTAINER:-redteam}
+    ports:
+      - "8001:8000"
+
+volumes:
+  media-claw-state:

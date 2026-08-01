@@ -1,0 +1,6 @@
+-r agents/media-claw-agent/requirements.txt
+-r agents/media-app-agent/requirements.txt
+-r agents/media-testing-agent/requirements.txt
+pytest>=8.4.0
+pytest-asyncio>=1.0.0
+ruff>=0.12.0

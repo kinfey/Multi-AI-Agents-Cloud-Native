@@ -1,0 +1,72 @@
+.header-side {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+}
+
+.lang-switch {
+	display: grid;
+	grid-template-columns: repeat(2, 52px);
+	height: 32px;
+	border: 1px solid #666b60;
+}
+
+.lang-switch button {
+	border: 0;
+	background: transparent;
+	color: var(--gray);
+	font: 600 11px/1 'IBM Plex Mono', monospace;
+	cursor: pointer;
+}
+
+.lang-switch button + button {
+	border-left: 1px solid #666b60;
+}
+
+.lang-switch button.active {
+	background: var(--acid);
+	color: var(--black);
+}
+
+.lang-switch button:focus-visible {
+	outline: 2px solid var(--paper);
+	outline-offset: 2px;
+}
+
+html[lang='en'] h1,
+html[lang='en'] .section-title h2,
+html[lang='en'] aside h2 {
+	font-family: 'IBM Plex Mono', monospace;
+	letter-spacing: 0;
+}
+
+html[lang='en'] h1 {
+	font-size: clamp(34px, 4.2vw, 64px);
+	line-height: 1.08;
+}
+
+@media (max-width: 700px) {
+	header {
+		height: auto;
+		min-height: 64px;
+		padding: 12px 18px;
+		gap: 12px;
+	}
+
+	.header-side {
+		gap: 10px;
+	}
+
+	.header-side time {
+		display: none;
+	}
+
+	.lang-switch {
+		grid-template-columns: repeat(2, 46px);
+	}
+
+	html[lang='en'] h1 {
+		font-size: clamp(30px, 10vw, 48px);
+		overflow-wrap: anywhere;
+	}
+}

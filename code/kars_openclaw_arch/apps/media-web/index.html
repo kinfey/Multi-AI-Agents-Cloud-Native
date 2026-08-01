@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f1efe7">
+  <title>盘面十条</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=footer3">
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand"><span id="brand-lead">盘面</span><strong id="brand-tail">十条</strong></div>
+    <div class="masthead-side">
+      <div id="lang-switch" class="lang-switch" role="group" aria-label="语言 / Language">
+        <button type="button" data-lang="cn" class="active" aria-pressed="true">中文</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <time id="today"></time>
+    </div>
+  </header>
+  <main>
+    <section class="player-stage" aria-labelledby="episode-title">
+      <div class="video-shell">
+        <video id="player" controls playsinline preload="metadata"></video>
+        <div id="empty-player" class="empty-player">今日节目正在编排</div>
+      </div>
+      <div class="episode-copy">
+        <p id="kicker" class="kicker">每日财经短视频</p>
+        <h1 id="episode-title">中美市场，十条说清</h1>
+        <p id="episode-summary">精选当天最值得关注的市场变化，用一段视频完成盘前梳理。</p>
+        <div class="actions">
+          <button id="like" class="icon-action" type="button" title="点赞" aria-label="点赞">♥ <span id="like-count">0</span></button>
+          <fieldset id="stars" class="stars" aria-label="评分">
+            <legend id="rating-legend">本期评分</legend>
+            <div class="rating-row"><div id="star-buttons"></div><span id="rating-stats" class="rating-stats"></span></div>
+          </fieldset>
+        </div>
+      </div>
+    </section>
+    <section class="catalog" aria-labelledby="catalog-title">
+      <div class="section-heading"><h2 id="catalog-title">往期节目</h2><span id="episode-count">0 EPISODES</span></div>
+      <div id="episodes" class="episode-grid" aria-live="polite"></div>
+    </section>
+  </main>
+  <footer class="site-footer">Power By Azure（Deploy with KAR）</footer>
+  <template id="episode-template">
+    <article class="episode-card">
+      <button class="episode-select" type="button">
+        <img alt="" loading="lazy">
+        <span class="episode-meta"><b></b><small></small></span>
+        <span class="play-mark">▶</span>
+      </button>
+    </article>
+  </template>
+  <script src="app.js?v=footer3" defer></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>KARS 红队观测台</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="styles.css?v=sev3">
+	<link rel="stylesheet" href="bilingual.css?v=sev3">
+</head>
+<body>
+	<header>
+		<div><span class="signal"></span>KARS / MEDIA SECURITY</div>
+		<div class="header-side">
+			<div id="lang-switch" class="lang-switch" role="group" aria-label="语言 / Language">
+				<button type="button" data-lang="cn" class="active" aria-pressed="true">中文</button>
+				<button type="button" data-lang="en" aria-pressed="false">EN</button>
+			</div>
+			<time id="clock"></time>
+		</div>
+	</header>
+	<main>
+		<section class="summary">
+			<p id="eyebrow">RED TEAM OBSERVATORY</p>
+			<h1 id="page-title">财经 Agent<br>安全观测台</h1>
+			<div id="verdict" class="verdict">等待最近一次评估</div>
+		</section>
+		<section class="metrics" id="metrics"></section>
+		<section class="findings">
+			<div class="section-title">
+				<h2 id="findings-title">发现记录</h2>
+				<button id="refresh" type="button" title="刷新" aria-label="刷新">↻</button>
+			</div>
+			<div id="finding-list"></div>
+		</section>
+		<aside>
+			<h2 id="runs-title">运行历史</h2>
+			<div id="runs"></div>
+		</aside>
+	</main>
+	<script src="app.js?v=sev3" defer></script>
+</body>
+</html>

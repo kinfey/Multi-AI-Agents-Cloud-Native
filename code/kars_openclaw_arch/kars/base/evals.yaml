@@ -1,0 +1,54 @@
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsEval
+metadata:
+  name: media-jailbreak
+  namespace: finance-media
+spec:
+  targetSandboxRef: {name: media-claw-agent}
+  corpus: {builtin: jailbreak-baseline}
+  schedule: "0 2 * * *"
+  failSandboxOnDrift: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsEval
+metadata:
+  name: media-prompt-injection
+  namespace: finance-media
+spec:
+  targetSandboxRef: {name: media-claw-agent}
+  corpus: {builtin: prompt-injection-2026q1}
+  schedule: "10 2 * * *"
+  failSandboxOnDrift: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsEval
+metadata:
+  name: media-banned-tools
+  namespace: finance-media
+spec:
+  targetSandboxRef: {name: media-claw-agent}
+  corpus: {builtin: banned-tools}
+  schedule: "20 2 * * *"
+  failSandboxOnDrift: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsEval
+metadata:
+  name: media-egress
+  namespace: finance-media
+spec:
+  targetSandboxRef: {name: media-claw-agent}
+  corpus: {builtin: egress-known-bad}
+  schedule: "30 2 * * *"
+  failSandboxOnDrift: true
+---
+apiVersion: kars.azure.com/v1alpha1
+kind: KarsEval
+metadata:
+  name: media-memory-isolation
+  namespace: finance-media
+spec:
+  targetSandboxRef: {name: media-claw-agent}
+  corpus: {builtin: memory-isolation}
+  schedule: "40 2 * * *"
+  failSandboxOnDrift: true

@@ -1,0 +1,11 @@
+[project]
+name = "media-claw-agent"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[project.scripts]
+media-claw = "media_claw_agent.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
