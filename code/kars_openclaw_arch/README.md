@@ -14,6 +14,82 @@ A multi-agent finance short-video system built on KARS and OpenClaw. Media-Claw-
 - `infra`: AZD/Bicep Azure infrastructure
 - `scripts`: KARS install, AKS configuration, smoke and red-team operations
 
+## Architecture
+
+```text
+							  Deployment and control plane
+  Developer / CI
+	  |
+	  | azd up + Bicep                    builds and pulls images
+	  v                                               |
+  +-------------------+                    +------------v-------------+
+  | Azure resource    |------------------->| Azure Container Registry |
+  | group             |                    | KARS + application images|
+  +-------------------+                    +------------+-------------+
+	  |                                                    |
+	  | provisions                                         |
+	  +---------------------------+------------------------+
+							|
+			  +-----------------+-----------------+
+			  |                                   |
+			  v                                   v
+  +----------------------------------+  +----------------------------------+
+  | Azure Container Apps Environment|  | Azure Kubernetes Service (AKS)  |
+  |                                  |  |                                  |
+  |  +----------------------------+  |  |  +----------------------------+  |
+  |  | Media App                  |  |  |  | KARS controller            |  |
+  |  | FastAPI + Video SPA        |  |  |  | CRDs, policy and lifecycle |  |
+  |  +-------------+--------------+  |  |  +-------------+--------------+  |
+  |                ^                 |  |                |                 |
+ |  +-------------+--------------+  |  |      manages all three         |
+ |  | Red-team App               |  |  |      OpenClaw sandboxes as    |
+ |  | FastAPI + Report SPA       |  |  |      peers                     |
+ |  +-------------+--------------+  |  |  +-------------v--------------+  |
+  +----------------+-----------------+  |  | Media-Claw-Agent            |  |
+			    ^                    |  | 08:00 scheduler + heartbeat  |  |
+			    | HTTPS              |  | news -> script -> images    |  |
+		+--------+--------+           |  | -> speech -> FFmpeg -> Blob |  |
+		| Browser users   |           |  +------+---------+-----------+  |
+		+-----------------+           |         |         |              |
+								|  +------v-----+ +-v------------+ |
+								|  | Media-App  | | Media-Testing| |
+								|  | Sandbox    | | Sandbox      | |
+								|  +------------+ +------+-------+ |
+								|                        ^         |
+								|  +---------------------+------+  |
+								|  | Five KarsEval suites       |  |
+								|  | jailbreak | injection      |  |
+								|  | tools | egress | memory    |  |
+								|  +----------------------------+  |
+								+-----+----------+----------+-----+
+									 |          |          |
+				  strict allowlisted egress|          |          | telemetry
+									 v          v          v
+  +-------------------+  +--------------------+  +-------------------------+
+  | News/RSS sources  |  | Microsoft Foundry |  | Log Analytics +        |
+  | China/US markets  |  | GPT + MAI Image   |  | Application Insights    |
+  +-------------------+  +---------+----------+  +-------------------------+
+						    |
+					+--------v---------+
+					| Azure Speech     |
+					| MAI Voice        |
+					+------------------+
+
+						Shared data and identity plane
+  +------------------------+  +----------------------+  +------------------+
+  | Private Blob Storage   |  | Azure Key Vault      |  | Managed Identity |
+  | media/                 |  | image/speech secrets |  | OIDC federation  |
+  | redteam/               |  | RBAC, no Git secrets |  | least-privilege  |
+  +-----------+------------+  +----------+-----------+  +---------+--------+
+		    ^                          ^                        |
+		    | manifests, media,       | runtime secret         |
+		    | reactions and reports   | retrieval              |
+		    +--------------------------+------------------------+
+					AKS sandboxes and Container Apps
+```
+
+The browser reaches only the two HTTPS Container Apps. Media-Claw-Agent performs the scheduled generation workflow inside a restricted KARS sandbox; Media-App-Agent serves catalogue and reaction data; Media-Testing-Agent processes the five security evaluation suites. Workload Identity and the Container Apps managed identity access private Azure resources without embedding tenant IDs, subscription IDs or credentials in the repository.
+
 ## Local development
 
 Requires Python 3.12, Docker, FFmpeg, Azure CLI, AZD, kubectl, Helm and Kustomize.
